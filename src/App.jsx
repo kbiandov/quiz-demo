@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import QuizDemo from "./QuizDemo";
 import StartScreen from "./StartScreen";
-import TopicDetail from "./TopicDetail";
 
 export default function App() {
   const [view, setView] = useState("start"); // start | topic | quiz
