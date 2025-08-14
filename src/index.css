@@ -1,0 +1,7 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* basic page padding */
+body { @apply bg-slate-50 text-slate-900; }
