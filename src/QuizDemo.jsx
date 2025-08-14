@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 
 /**
- * QUIZ DEMO — BG UI + Settings panel (gear)
- * - CSV линковете са в панел „Настройки“ (горе вдясно, ⚙️)
- * - Линковете се пазят в localStorage
- * - Бутон „Възстанови стандартните линкове“
- * - „Запази“ и „Запази и зареди“
+ * QUIZ DEMO — BG UI + Settings panel (gear) + initialFilters
+ * - Панел „Настройки“ (⚙️ горе вдясно) с 4 CSV URL полета
+ * - URL-ите се пазят в localStorage
+ * - „Възстанови стандартните линкове“, „Запази“, „Запази и зареди“
+ * - Поддръжка на initialFilters: { classId, lessonName, difficulty, questionCount, perQuestionSeconds }
+ * - „Прекрати теста“ → междинна реклама → връща към начален екран
  */
 
 const STORAGE_KEY = "quiz.csvUrls";
@@ -13,22 +14,19 @@ const STORAGE_KEY = "quiz.csvUrls";
 // Твоите работещи CSV линкове (default/fallback)
 const DEFAULT_CSV_URLS = {
   classes:
-    "https://docs.google.com/spreadsheets/d/e/2PACX-1vTlZCfq5-YCPGLE0DpGyKKsiJAqtPVbrSRaO0Msmf65lH5EJE8sGhGjUnsGARq9cHN1ulCTkc-qmvzR/pub?gid=1450893758&single=true&output=csv",
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vTlZCfq5-YCPGLE0DpGyKKsiJAqtPVbrSRaO0Msmf65lH5EJE8sGhGjUnsGARq9cHN1ulCTkc-qmvзR/pub?gid=1450893758&single=true&output=csv",
   subjects:
-    "https://docs.google.com/spreadsheets/d/e/2PACX-1vTlZCfq5-YCPGLE0DpGyKKsiJAqtPVbrSRaO0Msmf65lH5EJE8sGhGjUnsGARq9cHN1ulCTkc-qmvzR/pub?gid=1804178952&single=true&output=csv",
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vTlZCfq5-YCPGLE0DpGyKKsiJAqtPVbrSRaO0Msmf65lH5EJE8sGhGjUnsGARq9cHN1ulCTkc-qmvзR/pub?gid=1804178952&single=true&output=csv",
   lessons:
-    "https://docs.google.com/spreadsheets/d/e/2PACX-1vTlZCfq5-YCPGLE0DpGyKKsiJAqtPVbrSRaO0Msmf65lH5EJE8sGhGjUnsGARq9cHN1ulCTkc-qmvzR/pub?gid=636509497&single=true&output=csv",
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vTlZCfq5-YCPGLE0DpGyKKsiJAqtPVbrSRaO0Msmf65lH5EJE8sGhGjUnsGARq9cHN1ulCTkc-qmvзR/pub?gid=636509497&single=true&output=csv",
   questions:
-    "https://docs.google.com/spreadsheets/d/e/2PACX-1vTlZCfq5-YCPGLE0DpGyKKsiJAqtPVbrSRaO0Msmf65lH5EJE8sGhGjUnsGARq9cHN1ulCTkc-qmvzR/pub?gid=1301560227&single=true&output=csv",
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vTlZCfq5-YCPGLE0DpGyKKsiJAqtPVbrSRaO0Msmf65lH5EJE8sGhGjUnsGARq9cHN1ulCTkc-qmvзR/pub?gid=1301560227&single=true&output=csv",
 };
 
+// Фолбек данни (ако CSV зареждането се провали)
 const MOCK_SHEETS = {
   classes: [{ id: 6, name: "6 клас" }],
-  subjects: [
-    { id: 1, class_id: 6, name: "Математика" },
-    { id: 2, class_id: 6, name: "История" },
-    { id: 3, class_id: 6, name: "География" },
-  ],
+  subjects: [{ id: 1, class_id: 6, name: "Математика" }],
   lessons: [
     { id: 101, subject_id: 1, name: "Линейни уравнения" },
     { id: 102, subject_id: 1, name: "Пропорции и проценти" },
@@ -43,10 +41,18 @@ const MOCK_SHEETS = {
       answer: 2,
       explain: "2x=10 ⇒ x=5.",
     },
+    {
+      lesson_id: 101,
+      difficulty: "easy",
+      q: "Решете: x + 7 = 12",
+      options: ["x = 3", "x = 4", "x = 5", "x = 6"],
+      answer: 2,
+      explain: "x=12−7=5.",
+    },
   ],
 };
 
-// Малки UI компоненти
+/* ---------- Малки UI компоненти ---------- */
 const Chip = ({ children }) => (
   <span className="px-3 py-1 text-xs rounded-full bg-gray-100 border border-gray-200">
     {children}
@@ -88,7 +94,7 @@ function InterstitialAd({ show, onClose }) {
   );
 }
 
-// CSV helpers
+/* ---------- CSV helpers ---------- */
 async function fetchCsv(url) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -96,6 +102,7 @@ async function fetchCsv(url) {
   return parseCsv(text);
 }
 function parseCsv(text) {
+  // Робустен CSV парсер (кавачки, запетаи вътре, CR/LF)
   const rows = [];
   let cur = "";
   let inQuotes = false;
@@ -116,12 +123,8 @@ function parseCsv(text) {
         if (s[i + 1] === '"') {
           cur += '"';
           i++;
-        } else {
-          inQuotes = false;
-        }
-      } else {
-        cur += ch;
-      }
+        } else inQuotes = false;
+      } else cur += ch;
     } else {
       if (ch === '"') inQuotes = true;
       else if (ch === ",") pushCell();
@@ -147,19 +150,22 @@ function parseCsv(text) {
     });
 }
 
-// Нормализация
+/* ---------- Нормализация ---------- */
 const normClasses = (rows) =>
   rows
     .map((c) => ({ id: Number(c.id), name: c.name }))
     .filter((x) => Number.isFinite(x.id) && x.name);
+
 const normSubjects = (rows) =>
   rows
     .map((s) => ({ id: Number(s.id), class_id: Number(s.class_id), name: s.name }))
     .filter((x) => Number.isFinite(x.id) && Number.isFinite(x.class_id) && x.name);
+
 const normLessons = (rows) =>
   rows
     .map((l) => ({ id: Number(l.id), subject_id: Number(l.subject_id), name: l.name }))
     .filter((x) => Number.isFinite(x.id) && Number.isFinite(x.subject_id) && x.name);
+
 function normQuestions(rows) {
   return rows
     .map((q) => {
@@ -182,8 +188,9 @@ function normQuestions(rows) {
     );
 }
 
-export default function QuizDemo() {
-  // 1) Инициализация на линковете от localStorage, иначе — дефолт
+/* ---------- Главен компонент ---------- */
+export default function QuizDemo({ initialFilters } = {}) {
+  // CSV URL-и от localStorage (или дефолт)
   const [csvUrls, setCsvUrls] = useState(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -193,6 +200,7 @@ export default function QuizDemo() {
     }
   });
 
+  // Състояние
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [db, setDb] = useState({
@@ -202,7 +210,7 @@ export default function QuizDemo() {
     questions: [],
   });
 
-  // UI състояния
+  // UI избори
   const [selectedClassId, setSelectedClassId] = useState(null);
   const [selectedSubjectId, setSelectedSubjectId] = useState(null);
   const [selectedLessonId, setSelectedLessonId] = useState(null);
@@ -219,7 +227,7 @@ export default function QuizDemo() {
   const [showInterstitial, setShowInterstitial] = useState(false);
   const [pendingAdAction, setPendingAdAction] = useState(null); // 'end' | 'abort' | null
 
-  // ⚙️ Настройки (панел)
+  // ⚙️ Настройки
   const [showSettings, setShowSettings] = useState(false);
   const [draftUrls, setDraftUrls] = useState(csvUrls);
 
@@ -261,7 +269,7 @@ export default function QuizDemo() {
 
       setDb(data);
 
-      // Автоизбор
+      // Автоизбор на първите налични
       const cid = data.classes[0]?.id ?? null;
       const sid = data.subjects.find((s) => s.class_id === cid)?.id ?? null;
       const lid = data.lessons.find((l) => l.subject_id === sid)?.id ?? null;
@@ -269,6 +277,42 @@ export default function QuizDemo() {
       setSelectedSubjectId(sid);
       setSelectedLessonId(lid);
 
+      // ➜ Приложи входни филтри (ако са подадени)
+      if (initialFilters) {
+        // classId
+        if (Number.isFinite(initialFilters.classId)) {
+          const c = initialFilters.classId;
+          setSelectedClassId(c);
+          const s2 = data.subjects.find((x) => x.class_id === c)?.id ?? sid;
+          setSelectedSubjectId(s2);
+          const l2 = data.lessons.find((x) => x.subject_id === s2)?.id ?? lid;
+          setSelectedLessonId(l2);
+        }
+        // lessonName (точно съвпадение)
+        if (initialFilters.lessonName) {
+          const lessonByName = data.lessons.find(
+            (x) => x.name === initialFilters.lessonName
+          );
+          if (lessonByName) {
+            setSelectedLessonId(lessonByName.id);
+            const subj = data.subjects.find((s) => s.id === lessonByName.subject_id);
+            if (subj) {
+              setSelectedSubjectId(subj.id);
+              setSelectedClassId(subj.class_id);
+            }
+          }
+        }
+        if (initialFilters.difficulty)
+          setDifficulty(initialFilters.difficulty);
+        if (Number.isFinite(initialFilters.questionCount))
+          setQuestionCount(Math.max(3, initialFilters.questionCount));
+        if (Number.isFinite(initialFilters.perQuestionSeconds))
+          setPerQuestionSeconds(
+            Math.max(5, Math.min(120, initialFilters.perQuestionSeconds))
+          );
+      }
+
+      // Рестарт на теста (ако преди това е бил стартиран)
       setStarted(false);
       setIdx(0);
       setAnswers([]);
@@ -285,7 +329,7 @@ export default function QuizDemo() {
     }
   }
 
-  // Деривати
+  /* ---------- Деривати ---------- */
   const subjectsForClass = useMemo(
     () => db.subjects.filter((s) => s.class_id === selectedClassId),
     [db.subjects, selectedClassId]
@@ -313,7 +357,7 @@ export default function QuizDemo() {
     () => handleAnswer(-1)
   );
 
-  // Контроли
+  /* ---------- Контроли ---------- */
   function handleStart() {
     setStarted(true);
   }
@@ -361,7 +405,7 @@ export default function QuizDemo() {
     setPendingAdAction(null);
   }
 
-  // Настройки: действия
+  /* ---------- Настройки (панел) ---------- */
   function openSettings() {
     setDraftUrls(csvUrls);
     setShowSettings(true);
@@ -379,6 +423,7 @@ export default function QuizDemo() {
     setShowSettings(false);
   }
 
+  /* ---------- Рендер ---------- */
   if (loading) {
     return (
       <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-b from-white to-gray-50">
@@ -407,8 +452,7 @@ export default function QuizDemo() {
               Викторина — Google Sheets
             </h1>
             <p className="text-gray-600 mt-1">
-              Въведи CSV линковете в „Настройки“ (горе вдясно) и зареди
-              съдържанието. Има броячи и диагностика.
+              Отвори ⚙️ „Настройки“, провери CSV линковете и зареди съдържанието.
             </p>
           </div>
           <div className="flex flex-col items-end gap-2">
@@ -469,7 +513,7 @@ export default function QuizDemo() {
               </div>
 
               <div className="flex flex-col gap-2">
-                <label className="text-sm text-gray-700">Урок</label>
+                <label className="text-sm text-gray-700">Урок / Тема</label>
                 <select
                   className="border rounded-xl px-3 py-2 focus:outline-none focus:ring w-full"
                   value={selectedLessonId ?? ""}
@@ -519,11 +563,11 @@ export default function QuizDemo() {
                 <input
                   type="number"
                   min={5}
-                  max={90}
+                  max={120}
                   value={perQuestionSeconds}
                   onChange={(e) =>
                     setPerQuestionSeconds(
-                      Math.max(5, Math.min(90, Number(e.target.value) || 20))
+                      Math.max(5, Math.min(120, Number(e.target.value) || 20))
                     )
                   }
                   className="border rounded-xl px-3 py-2 focus:outline-none focus:ring w-full"
@@ -642,7 +686,7 @@ export default function QuizDemo() {
           </section>
         )}
 
-        {/* Финал */}
+        {/* Финал/празно */}
         {started && total === 0 && (
           <div className="text-sm text-red-600">
             Няма въпроси за избраните филтри. Пробвай с друга тема/трудност.
@@ -809,7 +853,7 @@ export default function QuizDemo() {
   );
 }
 
-// Помощни
+/* ---------- Помощни ---------- */
 function useCountdown(seconds, isRunning, onFinish) {
   const [left, setLeft] = useState(seconds);
   useEffect(() => {
