@@ -34,16 +34,15 @@ export default function App() {
       )}
       {view === "quiz" && (
         <QuizDemo
-          autoStart
-          initialFilters={{
-            classId: startParams?.classId,
-            lessonName: startParams?.topicName,
-            difficulty: startParams?.difficulty,
-            questionCount: startParams?.questionCount,
-            perQuestionSeconds: startParams?.perQuestionSeconds,
-          }}
-          onExit={goHome}
-        />
+  autoStart
+  initialFilters={{
+    classId: startParams?.classId,
+    lessonName: startParams?.topicName,
+    difficulty: startParams?.difficulty,
+    questionCount: startParams?.questionCount,
+    perQuestionSeconds: startParams?.perQuestionSeconds,
+  }}
+/>
       )}
     </>
   );
