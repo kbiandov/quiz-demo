@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react"1;
+import React, { useEffect, useMemo, useState } from "react";
 
 /**
  * QuizDemo – BG UI + Google Sheets + AutoStart + Settings
