@@ -1,0 +1,427 @@
+import React, { useEffect, useMemo, useState } from "react";
+
+/**
+ * QUIZ DEMO — Vite build (ASCII-safe)
+ * Google Sheets CSV integration + Abort test + Interstitial Ad
+ */
+
+const MOCK_SHEETS = {
+  classes: [{ id: 6, name: "6 klas" }],
+  subjects: [
+    { id: 1, class_id: 6, name: "Matematika" },
+    { id: 2, class_id: 6, name: "Istoria" },
+    { id: 3, class_id: 6, name: "Geografia" },
+  ],
+  lessons: [
+    { id: 101, subject_id: 1, name: "Lineyni uravnenia" },
+    { id: 102, subject_id: 1, name: "Proporcii i procenti" },
+    { id: 103, subject_id: 1, name: "Geometrichni figuri i obikolka" },
+    { id: 104, subject_id: 1, name: "Lice i obem na prizma" },
+    { id: 105, subject_id: 1, name: "Drobi i deistvia s drobi" },
+  ],
+  questions: [
+    { lesson_id: 101, difficulty: "easy", q: "Kolko e 2x = 10?", options: ["x = 2", "x = 3", "x = 5", "x = 10"], answer: 2, explain: "2x=10 => x=5." },
+    { lesson_id: 101, difficulty: "easy", q: "Reshete: x + 7 = 12", options: ["x = 3", "x = 4", "x = 5", "x = 6"], answer: 2, explain: "x = 12 - 7 = 5." },
+  ],
+};
+
+const Chip = ({ children }) => (
+  <span className="px-3 py-1 text-xs rounded-full bg-gray-100 border border-gray-200">{children}</span>
+);
+
+const ProgressBar = ({ value }) => (
+  <div className="w-full bg-gray-200 rounded-2xl h-3 overflow-hidden shadow-inner">
+    <div className="h-full rounded-2xl transition-all" style={{ width: `${Math.min(100, Math.max(0, value))}%` }} />
+  </div>
+);
+
+const BannerAd = () => (
+  <div className="w-full border rounded-xl p-3 text-center text-xs text-gray-500 bg-gray-50">Ad (banner)</div>
+);
+
+function InterstitialAd({ show, onClose }) {
+  if (!show) return null;
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+      <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md space-y-4">
+        <div className="text-sm text-gray-500">Ad (interstitial)</div>
+        <div className="h-40 border rounded-lg bg-gray-50 flex items-center justify-center text-gray-400">Ad slot</div>
+        <button onClick={onClose} className="w-full rounded-xl px-4 py-2 bg-black text-white">Close</button>
+      </div>
+    </div>
+  );
+}
+
+async function fetchCsv(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const text = await res.text();
+  return parseCsv(text);
+}
+
+function parseCsv(text) {
+  const rows = [];
+  let cur = "";
+  let inQuotes = false;
+  let row = [];
+  const pushCell = () => { row.push(cur); cur = ""; };
+  const pushRow = () => { rows.push(row); row = []; };
+  const s = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (s[i + 1] === '"') { cur += '"'; i++; }
+        else { inQuotes = false; }
+      } else { cur += ch; }
+    } else {
+      if (ch === '"') { inQuotes = true; }
+      else if (ch === ',') { pushCell(); }
+      else if (ch === '\n') { pushCell(); pushRow(); }
+      else { cur += ch; }
+    }
+  }
+  if (cur.length > 0 || row.length > 0) { pushCell(); pushRow(); }
+  if (!rows.length) return [];
+  const header = rows[0].map(h => h.trim());
+  return rows.slice(1)
+    .filter(r => r && r.some(c => (c ?? '').trim().length))
+    .map(cols => {
+      const obj = {};
+      header.forEach((h, i) => { obj[h] = (cols[i] ?? '').trim(); });
+      return obj;
+    });
+}
+
+function normClasses(rows) { return rows.map(c => ({ id: Number(c.id), name: c.name })).filter(x => Number.isFinite(x.id) && x.name); }
+function normSubjects(rows) { return rows.map(s => ({ id: Number(s.id), class_id: Number(s.class_id), name: s.name })).filter(x => Number.isFinite(x.id) && Number.isFinite(x.class_id) && x.name); }
+function normLessons(rows) { return rows.map(l => ({ id: Number(l.id), subject_id: Number(l.subject_id), name: l.name })).filter(x => Number.isFinite(x.id) && Number.isFinite(x.subject_id) && x.name); }
+function normQuestions(rows) {
+  return rows.map(q => {
+    const opts = [q.option_1, q.option_2, q.option_3, q.option_4].filter(v => v && v.length);
+    let ans = Number(q.correct_index);
+    if (!Number.isFinite(ans) || ans < 0 || ans >= opts.length) ans = 0;
+    return {
+      lesson_id: Number(q.lesson_id),
+      difficulty: (q.difficulty || 'easy').toLowerCase(),
+      q: q.question_text,
+      options: opts,
+      answer: ans,
+      explain: q.explanation || '',
+    };
+  }).filter(x => Number.isFinite(x.lesson_id) && x.q && x.options.length >= 2);
+}
+
+export default function QuizDemo() {
+  const DEFAULT_CSV_URLS = {
+    classes: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTlZCfq5-YCPGLE0DpGyKKsiJAqtPVbrSRaO0Msmf65lH5EJE8sGhGjUnsGARq9cHN1ulCTkc-qmvzR/pub?gid=1450893758&single=true&output=csv",
+    subjects: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTlZCfq5-YCPGLE0DpGyKKsiJAqtPVbrSRaO0Msmf65lH5EJE8sGhGjUnsGARq9cHN1ulCTkc-qmvzR/pub?gid=1804178952&single=true&output=csv",
+    lessons: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTlZCfq5-YCPGLE0DpGyKKsiJAqtPVbrSRaO0Msmf65lH5EJE8sGhGjUnsGARq9cHN1ulCTkc-qmvzR/pub?gid=636509497&single=true&output=csv",
+    questions: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTlZCfq5-YCPGLE0DpGyKKsiJAqtPVbrSRaO0Msmf65lH5EJE8sGhGjUnsGARq9cHN1ulCTkc-qmvzR/pub?gid=1301560227&single=true&output=csv",
+  };
+  const [csvUrls, setCsvUrls] = useState(DEFAULT_CSV_URLS);
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [db, setDb] = useState({ classes: [], subjects: [], lessons: [], questions: [] });
+
+  const [selectedClassId, setSelectedClassId] = useState(null);
+  const [selectedSubjectId, setSelectedSubjectId] = useState(null);
+  const [selectedLessonId, setSelectedLessonId] = useState(null);
+  const [difficulty, setDifficulty] = useState("all");
+  const [questionCount, setQuestionCount] = useState(6);
+  const [perQuestionSeconds, setPerQuestionSeconds] = useState(20);
+
+  const [started, setStarted] = useState(false);
+  const [idx, setIdx] = useState(0);
+  const [answers, setAnswers] = useState([]);
+  const [showExplain, setShowExplain] = useState(false);
+
+  const [showInterstitial, setShowInterstitial] = useState(false);
+  const [pendingAdAction, setPendingAdAction] = useState(null);
+
+  useEffect(() => { loadFromGoogleSheets(); }, []);
+
+  async function loadFromGoogleSheets() {
+    setLoading(true);
+    setError("");
+    try {
+      const required = [csvUrls.classes, csvUrls.subjects, csvUrls.lessons, csvUrls.questions];
+      if (required.some(u => !u)) throw new Error("Missing CSV URL(s). Fill all fields.");
+      const [classes, subjects, lessons, questions] = await Promise.all([
+        fetchCsv(csvUrls.classes),
+        fetchCsv(csvUrls.subjects),
+        fetchCsv(csvUrls.lessons),
+        fetchCsv(csvUrls.questions),
+      ]);
+      const data = {
+        classes: normClasses(classes),
+        subjects: normSubjects(subjects),
+        lessons: normLessons(lessons),
+        questions: normQuestions(questions),
+      };
+      if (!data.classes.length) throw new Error("Empty Classes");
+      if (!data.subjects.length) throw new Error("Empty Subjects");
+      if (!data.lessons.length) throw new Error("Empty Lessons");
+      if (!data.questions.length) throw new Error("Empty Questions");
+      setDb(data);
+      const cid = data.classes[0]?.id ?? null;
+      const sid = data.subjects.find((s) => s.class_id === cid)?.id ?? null;
+      const lid = data.lessons.find((l) => l.subject_id === sid)?.id ?? null;
+      setSelectedClassId(cid); setSelectedSubjectId(sid); setSelectedLessonId(lid);
+      setStarted(false); setIdx(0); setAnswers([]); setShowExplain(false);
+    } catch (e) {
+      console.error(e);
+      setError("CSV load failed: " + (e.message || e.toString()));
+      setDb(MOCK_SHEETS);
+      setSelectedClassId(6); setSelectedSubjectId(1); setSelectedLessonId(101);
+    } finally { setLoading(false); }
+  }
+
+  const subjectsForClass = useMemo(() => db.subjects.filter((s) => s.class_id === selectedClassId), [db.subjects, selectedClassId]);
+  const lessonsForSubject = useMemo(() => db.lessons.filter((l) => l.subject_id === selectedSubjectId), [db.lessons, selectedSubjectId]);
+
+  const filteredQuestions = useMemo(() => {
+    let list = db.questions.filter((q) => q.lesson_id === selectedLessonId);
+    if (difficulty !== "all") list = list.filter((q) => q.difficulty === difficulty);
+    return [...list].sort(() => Math.random() - 0.5).slice(0, questionCount);
+  }, [db.questions, selectedLessonId, difficulty, questionCount]);
+
+  const total = filteredQuestions.length;
+  const current = filteredQuestions[idx];
+  const progress = (idx / Math.max(1, total)) * 100;
+  const score = answers.filter((a) => a.isCorrect).length;
+
+  const timeLeft = useCountdown(perQuestionSeconds, started && !showExplain && idx < total, () => handleAnswer(-1));
+
+  function handleStart() { setStarted(true); }
+  function handleAnswer(selectedIndex) {
+    if (!current) return;
+    const isCorrect = selectedIndex === current.answer;
+    setAnswers((prev) => [...prev, { selected: selectedIndex, correctIndex: current.answer, isCorrect, q: current.q, options: current.options, explain: current.explain }]);
+    setShowExplain(true);
+  }
+  function nextQuestion() {
+    setShowExplain(false);
+    if (idx + 1 < total) setIdx((v) => v + 1);
+    else { setPendingAdAction("end"); setShowInterstitial(true); }
+  }
+  function restart() { setIdx(0); setAnswers([]); setShowExplain(false); setStarted(false); }
+  function abortTest() {
+    const ok = window.confirm("Do you want to abort the test and go back?");
+    if (!ok) return;
+    setPendingAdAction("abort");
+    setShowInterstitial(true);
+  }
+  function handleInterstitialClose() {
+    setShowInterstitial(false);
+    if (pendingAdAction === "abort") restart();
+    setPendingAdAction(null);
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-b from-white to-gray-50">
+        <div className="bg-white rounded-2xl shadow p-6">Loading...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen w-full bg-gradient-to-b from-white to-gray-50 flex items-center justify-center p-4">
+      <InterstitialAd show={showInterstitial} onClose={handleInterstitialClose} />
+
+      <div className="w-full max-w-2xl bg-white rounded-2xl shadow-xl p-6 lg:p-8 space-y-6">
+        <header className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-semibold">Quiz Demo — Google Sheets</h1>
+            <p className="text-gray-600 mt-1">Set CSV URLs and load content. Diagnostics counters and errors included.</p>
+          </div>
+          <div className="flex flex-col items-end gap-2">
+            <Chip>Questions: {questionCount}</Chip>
+            <Chip>Time/Q: {perQuestionSeconds}s</Chip>
+          </div>
+        </header>
+
+        <div className="w-full border rounded-xl p-3 text-center text-xs text-gray-500 bg-gray-50">Ad (banner)</div>
+
+        <section className="space-y-3">
+          <div className="text-sm font-medium">Google Sheets CSV URLs</div>
+          <input className="border rounded-xl px-3 py-2 w-full" placeholder="Classes CSV URL" value={csvUrls.classes} onChange={(e) => setCsvUrls({ ...csvUrls, classes: e.target.value })} />
+          <input className="border rounded-xl px-3 py-2 w-full" placeholder="Subjects CSV URL" value={csvUrls.subjects} onChange={(e) => setCsvUrls({ ...csvUrls, subjects: e.target.value })} />
+          <input className="border rounded-xl px-3 py-2 w-full" placeholder="Lessons CSV URL" value={csvUrls.lessons} onChange={(e) => setCsvUrls({ ...csvUrls, lessons: e.target.value })} />
+          <input className="border rounded-xl px-3 py-2 w-full" placeholder="Questions CSV URL" value={csvUrls.questions} onChange={(e) => setCsvUrls({ ...csvUrls, questions: e.target.value })} />
+
+          <div className="flex items-center gap-3">
+            <button onClick={loadFromGoogleSheets} className="inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-2.5 bg-black text-white">Load from Google Sheets</button>
+            {error && <span className="text-xs text-red-600">{error}</span>}
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+            <div>Classes: <span className="font-semibold">{db.classes.length}</span></div>
+            <div>Subjects: <span className="font-semibold">{db.subjects.length}</span></div>
+            <div>Lessons: <span className="font-semibold">{db.lessons.length}</span></div>
+            <div>Questions: <span className="font-semibold">{db.questions.length}</span></div>
+          </div>
+        </section>
+
+        {!started && db.questions.length > 0 && (
+          <section className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="flex flex-col gap-2">
+                <label className="text-sm text-gray-700">Klas</label>
+                <select className="border rounded-xl px-3 py-2 focus:outline-none focus:ring w-full" value={selectedClassId ?? ""} onChange={(e) => {
+                  const v = Number(e.target.value) || null;
+                  setSelectedClassId(v);
+                  const s = db.subjects.find((x) => x.class_id === v)?.id ?? null;
+                  setSelectedSubjectId(s);
+                  const les = db.lessons.find((x) => x.subject_id === s)?.id ?? null;
+                  setSelectedLessonId(les);
+                }}>
+                  {db.classes.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-sm text-gray-700">Predmet</label>
+                <select className="border rounded-xl px-3 py-2 focus:outline-none focus:ring w-full" value={selectedSubjectId ?? ""} onChange={(e) => {
+                  const v = Number(e.target.value) || null;
+                  setSelectedSubjectId(v);
+                  const les = db.lessons.find((x) => x.subject_id === v)?.id ?? null;
+                  setSelectedLessonId(les);
+                }}>
+                  {subjectsForClass.map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-sm text-gray-700">Urok</label>
+                <select className="border rounded-xl px-3 py-2 focus:outline-none focus:ring w-full" value={selectedLessonId ?? ""} onChange={(e) => setSelectedLessonId(Number(e.target.value) || null)}>
+                  {lessonsForSubject.map((l) => (<option key={l.id} value={l.id}>{l.name}</option>))}
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-sm text-gray-700">Trudnost</label>
+                <select className="border rounded-xl px-3 py-2 focus:outline-none focus:ring w-full" value={difficulty} onChange={(e) => setDifficulty(e.target.value)}>
+                  <option value="all">Vsichki</option>
+                  <option value="easy">Lesni</option>
+                  <option value="medium">Sredni</option>
+                  <option value="hard">Trudni</option>
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-sm text-gray-700">Broi vaprosi</label>
+                <input type="number" min={3} value={questionCount} onChange={(e) => setQuestionCount(Math.max(3, Number(e.target.value) || 6))} className="border rounded-xl px-3 py-2 focus:outline-none focus:ring w-full" />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-sm text-gray-700">Vreme/vapros (s)</label>
+                <input type="number" min={5} max={90} value={perQuestionSeconds} onChange={(e) => setPerQuestionSeconds(Math.max(5, Math.min(90, Number(e.target.value) || 20)))} className="border rounded-xl px-3 py-2 focus:outline-none focus:ring w-full" />
+              </div>
+            </div>
+
+            <button onClick={handleStart} className="w-full md:w-auto inline-flex items-center justify-center gap-2 rounded-2xl px-6 py-3 bg-black text-white hover:opacity-90 active:scale-[0.99] shadow" disabled={total === 0}>Start test</button>
+            {total === 0 && (<div className="text-xs text-red-600">No questions for current filters.</div>)}
+          </section>
+        )}
+
+        {started && total > 0 && (
+          <section className="space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-sm text-gray-600">Question {idx + 1} / {total}</div>
+              <div className="flex items-center gap-3">
+                <div className="text-sm text-gray-600">Score: <span className="font-semibold">{score}</span></div>
+                <button onClick={abortTest} className="text-xs px-3 py-1.5 rounded-lg border text-gray-700 hover:bg-gray-50">Abort test</button>
+              </div>
+            </div>
+
+            <ProgressBar value={progress} />
+
+            <div className="flex items-center justify-between bg-gray-50 border rounded-xl p-3">
+              <div className="text-sm text-gray-700">Time left</div>
+              <div className="text-lg font-semibold">{timeLeft}s</div>
+            </div>
+
+            <div className="space-y-3">
+              <h2 className="text-lg md:text-xl font-medium">{current?.q}</h2>
+              <div className="grid grid-cols-1 gap-3">
+                {current?.options.map((opt, i) => {
+                  const isSelected = answers[idx]?.selected === i;
+                  const isCorrectOpt = showExplain && i === current.answer;
+                  const isWrongSelected = showExplain && isSelected && i !== current.answer;
+                  return (
+                    <button key={i} disabled={showExplain} onClick={() => handleAnswer(i)} className={["text-left border rounded-xl px-4 py-3 transition shadow-sm", !showExplain && "hover:bg-gray-50", isCorrectOpt && "bg-green-50 border-green-300", isWrongSelected && "bg-red-50 border-red-300"].filter(Boolean).join(" ")}> 
+                      <span className="font-medium mr-2">{String.fromCharCode(65 + i)}.</span> {opt}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {showExplain && (
+              <div className="space-y-3">
+                <div className="p-3 border rounded-xl bg-white">
+                  <div className="text-sm text-gray-700">Explanation</div>
+                  <div className="mt-1">{current?.explain}</div>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <button onClick={nextQuestion} className="inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-2.5 bg-black text-white hover:opacity-90">{idx + 1 === total ? "Finish" : "Next question"}</button>
+                </div>
+              </div>
+            )}
+          </section>
+        )}
+
+        {started && total === 0 && (<div className="text-sm text-red-600">No questions for the selected filters.</div>)}
+
+        {started && answers.length === total && total > 0 && (
+          <section className="space-y-5">
+            <div className="text-center">
+              <div className="text-4xl font-bold">{score} / {total}</div>
+              <p className="text-gray-600 mt-1">Your result</p>
+            </div>
+
+            <div className="space-y-3">
+              {answers.map((a, i) => (
+                <div key={i} className="border rounded-xl p-3 bg-gray-50">
+                  <div className="text-sm text-gray-500 mb-1">Question {i + 1}</div>
+                  <div className="font-medium mb-2">{a.q}</div>
+                  <div className="text-sm mb-1">Your answer: {a.selected >= 0 ? `${String.fromCharCode(65 + a.selected)}. ${a.options[a.selected]}` : "(skipped)"}</div>
+                  <div className="text-sm">Correct: {String.fromCharCode(65 + a.correctIndex)}. {a.options[a.correctIndex]}</div>
+                  {a.explain && <div className="text-sm mt-2 text-gray-700">Explanation: {a.explain}</div>}
+                </div>
+              ))}
+            </div>
+
+            <div className="flex items-center justify-center gap-3">
+              <button onClick={restart} className="rounded-2xl px-5 py-2.5 border hover:bg-gray-50">Back to start</button>
+              <button onClick={() => {
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ class: selectedClassId, subject: selectedSubjectId, lesson: selectedLessonId, difficulty, perQuestionSeconds, answers }, null, 2));
+                const a = document.createElement("a"); a.setAttribute("href", dataStr); a.setAttribute("download", "quiz-results.json"); a.click();
+              }} className="rounded-2xl px-5 py-2.5 border hover:bg-gray-50">Export results</button>
+            </div>
+          </section>
+        )}
+
+        <footer className="pt-2 border-t text-xs text-gray-500 flex items-center justify-between">
+          <div>Sheets integration • Ad placeholders • Diagnostics</div>
+          <div>© Quiz Demo</div>
+        </footer>
+      </div>
+    </div>
+  );
+}
+
+function useCountdown(seconds, isRunning, onFinish) {
+  const [left, setLeft] = useState(seconds);
+  useEffect(() => { if (!isRunning) return; setLeft(seconds); }, [seconds, isRunning]);
+  useEffect(() => {
+    if (!isRunning) return;
+    if (left <= 0) { onFinish?.(); return; }
+    const t = setTimeout(() => setLeft((v) => v - 1), 1000);
+    return () => clearTimeout(t);
+  }, [left, isRunning, onFinish]);
+  return left;
+}
