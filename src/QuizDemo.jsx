@@ -1,40 +1,43 @@
 import React, { useEffect, useMemo, useState } from "react";
 
 /**
- * QuizDemo – BG UI + Google Sheets + AutoStart + Debug
- * - initialFilters: { classId, lessonName, difficulty, questionCount, perQuestionSeconds }
- * - autoStart: ако е true → прескача формата и стартира, щом има въпроси
- * - Debug: добави ?debug=1 към URL
+ * QuizDemo – BG UI + Google Sheets + AutoStart + Settings
+ * Props:
+ *  - initialFilters?: { classId, lessonName, difficulty, questionCount, perQuestionSeconds }
+ *  - autoStart?: boolean      -> ако е true, прескача формата и стартира когато има въпроси
+ *  - forceOpenSettings?: bool -> ако е true, отваря веднага панела "Настройки"
+ *  - onExit?: () => void      -> извиква се при "Начален екран"
  */
 
 const STORAGE_KEY = "quiz.csvUrls";
 
+// ЗАДАЙ тук твоите дефолтни публични CSV линкове (по ред: classes, subjects, lessons, questions)
 const DEFAULT_CSV_URLS = {
   classes:
-    "https://docs.google.com/spreadsheets/d/e/2PACX-1vTlZCfq5-YCPGLE0DpGyKKsiJAqtPVbrSRaO0Msmf65lH5EJE8sGhGjUnsGARq9cHN1ulCTkc-qmvzR/pub?gid=1450893758&single=true&output=csv",
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vTd0EZNnDJV2Bf9OpeffMMDLzqyzEB_OZnXW-ePb4G60IhkmGUcHUadKPAny5IVzkfdIbF0GH9YiwHn/pub?gid=1460999158&single=true&output=csv",
   subjects:
-    "https://docs.google.com/spreadsheets/d/e/2PACX-1vTlZCfq5-YCPGLE0DpGyKKsiJAqtPVbrSRaO0Msmf65lH5EJE8sGhGjUnsGARq9cHN1ulCTkc-qmvzR/pub?gid=1804178952&single=true&output=csv",
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vTd0EZNnDJV2Bf9OpeffMMDLzqyzEB_OZnXW-ePb4G60IhkmGUcHUadKPAny5IVzkfdIbF0GH9YiwHn/pub?gid=567850345&single=true&output=csv",
   lessons:
-    "https://docs.google.com/spreadsheets/d/e/2PACX-1vTlZCfq5-YCPGLE0DpGyKKsiJAqtPVbrSRaO0Msmf65lH5EJE8sGhGjUnsGARq9cHN1ulCTkc-qmvzR/pub?gid=636509497&single=true&output=csv",
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vTd0EZNnDJV2Bf9OpeffMMDLzqyzEB_OZnXW-ePb4G60IhkmGUcHUadKPAny5IVzkfdIbF0GH9YiwHn/pub?gid=1551143625&single=true&output=csv",
   questions:
-    "https://docs.google.com/spreadsheets/d/e/2PACX-1vTlZCfq5-YCPGLE0DpGyKKsiJAqtPVbrSRaO0Msmf65lH5EJE8sGhGjUnsGARq9cHN1ulCTkc-qmvzR/pub?gid=1301560227&single=true&output=csv",
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vTd0EZNnDJV2Bf9OpeffMMDLzqyzEB_OZnXW-ePb4G60IhkmGUcHUadKPAny5IVzkfdIbF0GH9YiwHn/pub?gid=560252204&single=true&output=csv",
 };
 
-// Фолбек (ако CSV не се заредят)
+// Фолбек данни (ако CSV не се заредят)
 const MOCK = {
   classes: [{ id: 6, name: "6 клас" }],
   subjects: [{ id: 1, class_id: 6, name: "Математика" }],
   lessons: [
     { id: 101, subject_id: 1, name: "Линейни уравнения" },
-    { id: 102, subject_id: 1, name: "Пропорции и проценти" },
+    { id: 102, subject_id: 1, name: "Пропорции" },
   ],
   questions: [
-    { lesson_id: 101, difficulty: "easy", q: "2x = 10. x = ?", options: ["2","3","5","10"], answer: 2, explain: "x = 10/2 = 5." },
-    { lesson_id: 101, difficulty: "easy", q: "x + 7 = 12. x = ?", options: ["3","4","5","6"], answer: 2, explain: "12 - 7 = 5." },
+    { lesson_id: 101, difficulty: "easy", q: "2x = 10. x = ?", options: ["2","3","5","10"], answer: 2, explain: "x=10/2=5." },
+    { lesson_id: 101, difficulty: "easy", q: "x + 7 = 12. x = ?", options: ["3","4","5","6"], answer: 2, explain: "12-7=5." },
   ],
 };
 
-/* ---------- UI Helpers ---------- */
+/* ---------- Лек UI ---------- */
 const Chip = ({ children }) => (
   <span className="px-3 py-1 text-xs rounded-full bg-gray-100 border border-gray-200">{children}</span>
 );
@@ -56,25 +59,24 @@ function InterstitialAd({ show, onClose }) {
   );
 }
 
-/* ---------- CSV ---------- */
+/* ---------- CSV helpers ---------- */
 async function fetchCsv(url) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return parseCsv(await res.text());
 }
 function parseCsv(text) {
-  const rows = [];
-  let cur = "", inQuotes = false, row = [];
+  const rows = []; let cur = "", inQ = false, row = [];
   const pushCell = () => { row.push(cur); cur = ""; };
-  const pushRow = () => { rows.push(row); row = []; };
+  const pushRow  = () => { rows.push(row); row = []; };
   const s = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
-  for (let i = 0; i < s.length; i++) {
+  for (let i=0;i<s.length;i++){
     const ch = s[i];
-    if (inQuotes) {
-      if (ch === '"') { if (s[i+1] === '"') { cur += '"'; i++; } else inQuotes = false; }
+    if (inQ) {
+      if (ch === '"'){ if (s[i+1] === '"'){ cur += '"'; i++; } else inQ = false; }
       else cur += ch;
     } else {
-      if (ch === '"') inQuotes = true;
+      if (ch === '"') inQ = true;
       else if (ch === ",") pushCell();
       else if (ch === "\n") { pushCell(); pushRow(); }
       else cur += ch;
@@ -83,28 +85,30 @@ function parseCsv(text) {
   if (cur.length > 0 || row.length > 0) { pushCell(); pushRow(); }
   if (!rows.length) return [];
   const header = rows[0].map(h => h.trim());
-  return rows.slice(1).filter(r => r && r.some(c => (c ?? "").trim().length)).map(cols => {
-    const o = {}; header.forEach((h,i)=> o[h] = (cols[i] ?? "").trim()); return o;
-  });
+  return rows.slice(1)
+    .filter(r => r && r.some(c => (c ?? "").trim().length))
+    .map(cols => {
+      const o = {}; header.forEach((h,i)=> o[h] = (cols[i] ?? "").trim()); return o;
+    });
 }
 
-/* ---------- Normalization ---------- */
-const normClasses = rs => rs.map(c => ({ id: Number(c.id), name: c.name }))
-  .filter(x => Number.isFinite(x.id) && x.name);
+/* ---------- Нормализация ---------- */
+const normClasses  = rs => rs.map(c => ({ id: Number(c.id), name: c.name })).filter(x => Number.isFinite(x.id) && x.name);
 const normSubjects = rs => rs.map(s => ({ id: Number(s.id), class_id: Number(s.class_id), name: s.name }))
-  .filter(x => Number.isFinite(x.id) && Number.isFinite(x.class_id) && x.name);
-const normLessons = rs => rs.map(l => ({ id: Number(l.id), subject_id: Number(l.subject_id), name: l.name }))
-  .filter(x => Number.isFinite(x.id) && Number.isFinite(x.subject_id) && x.name);
-function normQuestions(rs) {
-  return rs.map(q => {
+                             .filter(x => Number.isFinite(x.id) && Number.isFinite(x.class_id) && x.name);
+const normLessons  = rs => rs.map(l => ({ id: Number(l.id), subject_id: Number(l.subject_id), name: l.name }))
+                             .filter(x => Number.isFinite(x.id) && Number.isFinite(x.subject_id) && x.name);
+function normQuestions(rs){
+  return rs.map(q=>{
     const opts = [q.option_1, q.option_2, q.option_3, q.option_4].filter(Boolean);
-    let ans = Number(q.correct_index); if (!Number.isFinite(ans) || ans < 0 || ans >= opts.length) ans = 0;
-    return { lesson_id: Number(q.lesson_id), difficulty: (q.difficulty || "easy").toLowerCase(), q: q.question_text, options: opts, answer: ans, explain: q.explanation || "" };
-  }).filter(x => Number.isFinite(x.lesson_id) && x.q && x.options.length >= 2);
+    let ans = Number(q.correct_index); if (!Number.isFinite(ans) || ans<0 || ans>=opts.length) ans = 0;
+    return { lesson_id: Number(q.lesson_id), difficulty: (q.difficulty||"easy").toLowerCase(), q: q.question_text, options: opts, answer: ans, explain: q.explanation || "" };
+  }).filter(x => Number.isFinite(x.lesson_id) && x.q && x.options.length>=2);
 }
 
-/* ---------- Component ---------- */
-export default function QuizDemo({ initialFilters, autoStart } = {}) {
+/* ---------- Главен компонент ---------- */
+export default function QuizDemo({ initialFilters, autoStart, forceOpenSettings, onExit } = {}) {
+  // CSV URL-и от localStorage (или дефолт)
   const [csvUrls, setCsvUrls] = useState(() => {
     try { const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : DEFAULT_CSV_URLS; }
     catch { return DEFAULT_CSV_URLS; }
@@ -131,69 +135,73 @@ export default function QuizDemo({ initialFilters, autoStart } = {}) {
   const [showExplain, setShowExplain] = useState(false);
 
   const [showInterstitial, setShowInterstitial] = useState(false);
-  const [pendingAdAction, setPendingAdAction] = useState(null);
+  const [pendingAdAction, setPendingAdAction] = useState(null); // 'end'|'abort'|null
 
-  // ⚙️ Настройки UI
+  // ⚙️ Настройки
   const [showSettings, setShowSettings] = useState(false);
   const [draftUrls, setDraftUrls] = useState(csvUrls);
 
-  useEffect(() => { load(); /* eslint-disable react-hooks/exhaustive-deps */ }, []);
+  // От началния екран – отвори директно настройките
+  useEffect(() => { if (forceOpenSettings) setShowSettings(true); }, [forceOpenSettings]);
 
-  async function load() {
+  // Зареждане от Sheets
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
+
+  async function load(){
     setLoading(true); setError("");
-    try {
-      const [c, s, l, q] = await Promise.all([
+    try{
+      const [c,s,l,q] = await Promise.all([
         fetchCsv(csvUrls.classes),
         fetchCsv(csvUrls.subjects),
         fetchCsv(csvUrls.lessons),
         fetchCsv(csvUrls.questions),
       ]);
       const data = {
-        classes: normClasses(c),
+        classes:  normClasses(c),
         subjects: normSubjects(s),
-        lessons: normLessons(l),
-        questions: normQuestions(q),
+        lessons:  normLessons(l),
+        questions:normQuestions(q),
       };
       if (!data.classes.length || !data.subjects.length || !data.lessons.length || !data.questions.length)
         throw new Error("Някоя от таблиците е празна.");
 
       setDb(data);
 
-      // Auto-select + прилагане на начални филтри
+      // Автоизбор
       let cid = data.classes[0]?.id ?? null;
       let sid = data.subjects.find(x => x.class_id === cid)?.id ?? null;
       let lid = data.lessons.find(x => x.subject_id === sid)?.id ?? null;
 
-      if (initialFilters) {
+      // Прилагане на входни филтри
+      if (initialFilters){
         if (Number.isFinite(initialFilters.classId)) cid = initialFilters.classId;
-        if (initialFilters.lessonName) {
-          const norm = s => (s || "").toLowerCase().trim();
+
+        if (initialFilters.lessonName){
+          const norm = s => (s||"").toLowerCase().trim();
           const target = norm(initialFilters.lessonName);
           const byName =
             data.lessons.find(x => norm(x.name) === target) ||
             data.lessons.find(x => norm(x.name).includes(target));
-          if (byName) {
+          if (byName){
             lid = byName.id;
             const subj = data.subjects.find(t => t.id === byName.subject_id);
-            if (subj) { sid = subj.id; cid = subj.class_id; }
+            if (subj){ sid = subj.id; cid = subj.class_id; }
           }
         }
+
         if (initialFilters.difficulty) setDifficulty(initialFilters.difficulty);
         if (Number.isFinite(initialFilters.questionCount)) setQuestionCount(Math.max(3, initialFilters.questionCount));
-        if (Number.isFinite(initialFilters.perQuestionSeconds))
-          setPerQuestionSeconds(Math.max(5, Math.min(120, initialFilters.perQuestionSeconds)));
+        if (Number.isFinite(initialFilters.perQuestionSeconds)) setPerQuestionSeconds(Math.max(5, Math.min(120, initialFilters.perQuestionSeconds)));
       }
 
       setSelectedClassId(cid); setSelectedSubjectId(sid); setSelectedLessonId(lid);
 
-      // reset test state
       setStarted(false); setIdx(0); setAnswers([]); setShowExplain(false);
-    } catch (e) {
+    }catch(e){
       console.error(e);
       setError("Грешка при зареждане на CSV: " + (e.message || e.toString()));
-      setDb(MOCK);
-      setSelectedClassId(6); setSelectedSubjectId(1); setSelectedLessonId(101);
-    } finally { setLoading(false); }
+      setDb(MOCK); setSelectedClassId(6); setSelectedSubjectId(1); setSelectedLessonId(101);
+    }finally{ setLoading(false); }
   }
 
   // Деривати
@@ -206,7 +214,7 @@ export default function QuizDemo({ initialFilters, autoStart } = {}) {
     return [...list].sort(() => Math.random() - 0.5).slice(0, questionCount);
   }, [db.questions, selectedLessonId, difficulty, questionCount]);
 
-  // По-агресивен автостарт + fallback на трудност
+  // По-агресивен автостарт (+ fallback на трудност)
   useEffect(() => {
     if (!autoStart) return;
     if (loading) return;
@@ -215,16 +223,12 @@ export default function QuizDemo({ initialFilters, autoStart } = {}) {
 
     const forLesson = db.questions.filter(q => q.lesson_id === selectedLessonId);
     if (difficulty !== "all" && !forLesson.some(q => q.difficulty === difficulty)) {
-      console.warn("[autoStart] No questions for difficulty", difficulty, "→ switching to 'all'");
-      setDifficulty("all");
+      setDifficulty("all"); // ако няма за избраната трудност — падни на всички
       return;
     }
     let list = forLesson;
     if (difficulty !== "all") list = list.filter(q => q.difficulty === difficulty);
-    if (list.length > 0) {
-      console.log("[autoStart] starting with", list.length, "questions");
-      setStarted(true);
-    }
+    if (list.length > 0) setStarted(true);
   }, [autoStart, loading, started, selectedLessonId, db.questions, difficulty]);
 
   // Debug панел
@@ -245,24 +249,24 @@ export default function QuizDemo({ initialFilters, autoStart } = {}) {
     </pre>
   ) : null;
 
-  // Игра
+  // Логика на играта
   const total = filteredQuestions.length;
   const current = filteredQuestions[idx];
   const progress = (idx / Math.max(1, total)) * 100;
   const score = answers.filter(a => a.isCorrect).length;
   const timeLeft = useCountdown(perQuestionSeconds, started && !showExplain && idx < total, () => handleAnswer(-1));
 
-  function handleStart() { setStarted(true); }
-  function handleAnswer(sel) {
+  function handleStart(){ setStarted(true); }
+  function handleAnswer(sel){
     if (!current) return;
     const isCorrect = sel === current.answer;
     setAnswers(prev => [...prev, { selected: sel, correctIndex: current.answer, isCorrect, q: current.q, options: current.options, explain: current.explain }]);
     setShowExplain(true);
   }
-  function nextQuestion() { setShowExplain(false); if (idx + 1 < total) setIdx(v => v + 1); else { setPendingAdAction("end"); setShowInterstitial(true); } }
-  function restart() { setIdx(0); setAnswers([]); setShowExplain(false); setStarted(false); }
-  function abortTest() { if (!window.confirm("Прекратяване на теста?")) return; setPendingAdAction("abort"); setShowInterstitial(true); }
-  function closeAd() { setShowInterstitial(false); if (pendingAdAction === "abort") restart(); setPendingAdAction(null); }
+  function nextQuestion(){ setShowExplain(false); if (idx + 1 < total) setIdx(v => v + 1); else { setPendingAdAction("end"); setShowInterstitial(true); } }
+  function restart(){ setIdx(0); setAnswers([]); setShowExplain(false); setStarted(false); }
+  function abortTest(){ if (!window.confirm("Прекратяване на теста?")) return; setPendingAdAction("abort"); setShowInterstitial(true); }
+  function closeAd(){ setShowInterstitial(false); if (pendingAdAction === "abort") restart(); setPendingAdAction(null); }
 
   // Настройки
   function openSettings(){ setDraftUrls(csvUrls); setShowSettings(true); }
@@ -286,7 +290,11 @@ export default function QuizDemo({ initialFilters, autoStart } = {}) {
       <InterstitialAd show={showInterstitial} onClose={closeAd} />
 
       <div className="w-full max-w-2xl bg-white rounded-2xl shadow-xl p-6 lg:p-8 space-y-6 relative">
-        <button title="Настройки" onClick={openSettings} className="absolute right-4 top-4 rounded-full border p-2 hover:bg-gray-50">⚙️</button>
+        {/* Header */}
+        <div className="flex items-start justify-between">
+          <button onClick={onExit} className="rounded-lg border px-3 py-1 text-sm hover:bg-gray-50">← Начален екран</button>
+          <button title="Настройки" onClick={openSettings} className="rounded-full border p-2 hover:bg-gray-50">⚙️</button>
+        </div>
 
         {/* Preparing (autoStart) */}
         {autoStart && !started && (
@@ -315,9 +323,12 @@ export default function QuizDemo({ initialFilters, autoStart } = {}) {
               <div className="flex flex-col gap-2">
                 <label className="text-sm text-gray-700">Клас</label>
                 <select className="border rounded-xl px-3 py-2" value={selectedClassId ?? ""} onChange={(e)=>{
-                  const v = Number(e.target.value) || null; setSelectedClassId(v);
-                  const s = db.subjects.find(x=>x.class_id===v)?.id ?? null; setSelectedSubjectId(s);
-                  const l = db.lessons.find(x=>x.subject_id===s)?.id ?? null; setSelectedLessonId(l);
+                  const v = Number(e.target.value) || null;
+                  setSelectedClassId(v);
+                  const s = db.subjects.find(x => x.class_id === v)?.id ?? null;
+                  setSelectedSubjectId(s);
+                  const l = db.lessons.find(x => x.subject_id === s)?.id ?? null;
+                  setSelectedLessonId(l);
                 }}>
                   {db.classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
@@ -327,7 +338,7 @@ export default function QuizDemo({ initialFilters, autoStart } = {}) {
                 <label className="text-sm text-gray-700">Предмет</label>
                 <select className="border rounded-xl px-3 py-2" value={selectedSubjectId ?? ""} onChange={(e)=>{
                   const v = Number(e.target.value) || null; setSelectedSubjectId(v);
-                  const l = db.lessons.find(x=>x.subject_id===v)?.id ?? null; setSelectedLessonId(l);
+                  const l = db.lessons.find(x => x.subject_id === v)?.id ?? null; setSelectedLessonId(l);
                 }}>
                   {subjectsForClass.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
@@ -366,7 +377,7 @@ export default function QuizDemo({ initialFilters, autoStart } = {}) {
             <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
               <div>Класове: <b>{db.classes.length}</b></div>
               <div>Предмети: <b>{db.subjects.length}</b></div>
-              <div>Уроци: <b>{db.lessons.length}</b></div>
+              <div>Уроци:   <b>{db.lessons.length}</b></div>
               <div>Въпроси: <b>{db.questions.length}</b></div>
             </div>
 
@@ -439,8 +450,9 @@ export default function QuizDemo({ initialFilters, autoStart } = {}) {
               <div className="text-4xl font-bold">{score} / {filteredQuestions.length}</div>
               <p className="text-gray-600 mt-1">Твоят резултат</p>
             </div>
-            <div className="flex justify-center">
-              <button onClick={restart} className="rounded-2xl px-5 py-2.5 border">Начален екран</button>
+            <div className="flex justify-center gap-3">
+              <button onClick={restart} className="rounded-2xl px-5 py-2.5 border">Играй отново</button>
+              <button onClick={onExit} className="rounded-2xl px-5 py-2.5 border">Начален екран</button>
             </div>
           </section>
         )}
@@ -454,7 +466,7 @@ export default function QuizDemo({ initialFilters, autoStart } = {}) {
               <div className="text-lg font-medium">Настройки</div>
               <button onClick={()=>setShowSettings(false)} className="rounded-lg border px-3 py-1 text-sm hover:bg-gray-50">Затвори</button>
             </div>
-            <div className="text-sm text-gray-600">Линковете се пазят локално (localStorage).</div>
+            <div className="text-sm text-gray-600">Постави публичните CSV линкове от Google Sheets. Пазим ги локално (localStorage).</div>
 
             {["classes","subjects","lessons","questions"].map(k=>(
               <div key={k} className="space-y-1">
@@ -477,7 +489,7 @@ export default function QuizDemo({ initialFilters, autoStart } = {}) {
   );
 }
 
-/* ---------- Timer ---------- */
+/* ---------- Таймер ---------- */
 function useCountdown(seconds, isRunning, onFinish) {
   const [left, setLeft] = useState(seconds);
   useEffect(() => { if (!isRunning) return; setLeft(seconds); }, [seconds, isRunning]);
