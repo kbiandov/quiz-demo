@@ -37,10 +37,10 @@ export default function App() {
   autoStart
   initialFilters={{
     classId: startParams?.classId,
-    lessonName: startParams?.topicName,
-    difficulty: startParams?.difficulty,
-    questionCount: startParams?.questionCount,
-    perQuestionSeconds: startParams?.perQuestionSeconds,
+    lessonName: startParams?.topicName,         // пример: "Линейни уравнения"
+    difficulty: startParams?.difficulty,        // "easy" | "medium" | "hard" | "all"
+    questionCount: startParams?.questionCount,  // число, напр. 8
+    perQuestionSeconds: startParams?.perQuestionSeconds, // число, напр. 25
   }}
 />
       )}
