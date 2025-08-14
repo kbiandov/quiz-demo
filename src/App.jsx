@@ -24,8 +24,9 @@ export default function App() {
   const { profile, saveProfile } = useProfile();
   const [view, setView] = useState(profile ? "home" : "onboarding");
 
-  // Параметри за стартиране на тест (клас/урок/тема)
-  const [startParams, setStartParams] = useState(null);
+  // Навигационни параметри
+  const [pendingTopic, setPendingTopic] = useState(null); // { id, name }
+  const [startParams, setStartParams] = useState(null);   // предава се към Quiz
 
   useEffect(() => {
     if (!profile) setView("onboarding");
@@ -53,10 +54,16 @@ export default function App() {
         <Tests
           profile={profile}
           onBack={() => setView("home")}
-          onStart={(params) => {
-            setStartParams(params);
-            setView("quiz");
-          }}
+          onOpenTopic={(topic) => { setPendingTopic(topic); setView("testDetail"); }}
+        />
+      )}
+
+      {view === "testDetail" && (
+        <TestDetail
+          profile={profile}
+          topic={pendingTopic}
+          onBack={() => setView("tests")}
+          onStart={(params) => { setStartParams(params); setView("quiz"); }}
         />
       )}
 
@@ -159,10 +166,10 @@ function HomeTile({ icon, label, onClick }) {
 }
 
 /* ---------------- Tests (tabs) ---------------- */
-function Tests({ profile, onBack, onStart }) {
+function Tests({ profile, onBack, onOpenTopic }) {
   const [tab, setTab] = useState("topic"); // 'topic' | 'grade'
 
-  // ТЕМП: Темите са демонстрационни. По-късно ще идват от Sheets/CSV.
+  // Демонстрационни теми (по-късно ще ги четем от Sheets)
   const topics = [
     { id: 101, name: "Линейни уравнения" },
     { id: 102, name: "Пропорции и проценти" },
@@ -191,7 +198,7 @@ function Tests({ profile, onBack, onStart }) {
             <button
               key={t.id}
               className="rounded-xl border bg-white p-4 text-left hover:bg-gray-50"
-              onClick={() => onStart({ mode: "topic", topicId: t.id, grade: currentGrade })}
+              onClick={() => onOpenTopic({ id: t.id, name: t.name })}
             >
               <div className="text-sm text-gray-500">Тема</div>
               <div className="text-base font-medium">{t.name}</div>
@@ -203,13 +210,10 @@ function Tests({ profile, onBack, onStart }) {
       {tab === "grade" && (
         <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
           {grades.map(g => (
-            <button
-              key={g}
-              className={`rounded-xl border bg-white p-4 hover:bg-gray-50 ${g === currentGrade ? "ring-2 ring-black" : ""}`}
-              onClick={() => onStart({ mode: "grade", grade: g })}
-            >
-              <div className="text-center font-medium">{g} клас</div>
-            </button>
+            <div key={g} className={`rounded-xl border bg-white p-4 text-center ${g === currentGrade ? "ring-2 ring-black" : ""}`}>
+              <div className="font-medium">{g} клас</div>
+              <div className="text-xs text-gray-500 mt-1">Скоро — преговор по клас</div>
+            </div>
           ))}
         </div>
       )}
@@ -227,16 +231,94 @@ function TabButton({ active, onClick, children }) {
   );
 }
 
+/* ---------------- Test Detail (ново) ---------------- */
+function TestDetail({ profile, topic, onBack, onStart }) {
+  const [difficulty, setDifficulty] = useState("easy");
+  const [questionCount, setQuestionCount] = useState(8);
+  const [perQuestionSeconds, setPerQuestionSeconds] = useState(25);
+
+  if (!topic) return null;
+
+  const handleStart = () => {
+    onStart({
+      mode: "topic",
+      topicName: topic.name,    // ще изберем урок по име
+      classId: profile?.grade,  // предпочитан клас
+      difficulty,
+      questionCount,
+      perQuestionSeconds,
+    });
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto p-6 space-y-5">
+      <div className="flex items-center justify-between">
+        <button onClick={onBack} className="rounded-xl border px-3 py-2 hover:bg-gray-50">← Назад</button>
+        <h1 className="text-xl font-semibold">Избран тест</h1>
+        <div />
+      </div>
+
+      <div className="bg-white rounded-2xl border shadow-sm p-6 space-y-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="text-sm text-gray-500">Тема</div>
+            <div className="text-2xl font-semibold">{topic.name}</div>
+            <div className="text-gray-600 mt-1">Математика • {profile?.grade} клас</div>
+          </div>
+          <div className="text-4xl">🧠</div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="flex flex-col gap-2">
+            <label className="text-sm text-gray-700">Трудност</label>
+            <select className="border rounded-xl px-3 py-2" value={difficulty} onChange={(e) => setDifficulty(e.target.value)}>
+              <option value="easy">Лесни</option>
+              <option value="medium">Средни</option>
+              <option value="hard">Трудни</option>
+              <option value="all">Всички</option>
+            </select>
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className="text-sm text-gray-700">Брой въпроси</label>
+            <input type="number" min={3} className="border rounded-xl px-3 py-2" value={questionCount} onChange={(e) => setQuestionCount(Math.max(3, Number(e.target.value)||8))} />
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className="text-sm text-gray-700">Време за въпрос (секунди)</label>
+            <input type="number" min={5} max={120} className="border rounded-xl px-3 py-2" value={perQuestionSeconds} onChange={(e) => setPerQuestionSeconds(Math.max(5, Math.min(120, Number(e.target.value)||25)))} />
+          </div>
+        </div>
+
+        <div className="text-sm text-gray-600">
+          * Въпросите ще се заредят от Google Sheets. Ако темата съществува в „Уроци“, тя ще бъде избрана автоматично.
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button onClick={handleStart} className="rounded-2xl px-6 py-3 bg-black text-white hover:opacity-90">▶ Стартирай теста</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ---------------- Quiz shell ---------------- */
-/* Тук само „обвиваме“ съществуващия QuizDemo. По-късно ще му подадем filters. */
 function QuizShell({ onBack, startParams }) {
   return (
     <div className="max-w-4xl mx-auto p-4">
       <div className="flex items-center justify-between mb-3">
         <button onClick={onBack} className="rounded-xl border px-3 py-2 hover:bg-gray-50">← Начален екран</button>
-        <div className="text-sm text-gray-500">Режим: {startParams?.mode === "topic" ? "По тема" : "По клас"}</div>
+        <div className="text-sm text-gray-500">
+          {startParams?.topicName ? `Тема: ${startParams.topicName}` : "Тест"}
+        </div>
       </div>
-      <QuizDemo />
+      <QuizDemo
+        initialFilters={{
+          classId: startParams?.classId,
+          lessonName: startParams?.topicName,        // ще се опитаме да намерим урок по име
+          difficulty: startParams?.difficulty,
+          questionCount: startParams?.questionCount,
+          perQuestionSeconds: startParams?.perQuestionSeconds,
+        }}
+      />
     </div>
   );
 }
