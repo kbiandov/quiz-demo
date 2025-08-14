@@ -6,6 +6,7 @@ import TopicDetail from "./TopicDetail";
 export default function App() {
   const [view, setView] = useState("start"); // start | topic | quiz
   const [startParams, setStartParams] = useState(null);
+  const [forceOpenSettings, setForceOpenSettings] = useState(false); // ⬅️ ново
 
   const goToTopic = (topic) => {
     setStartParams(topic);
@@ -14,17 +15,32 @@ export default function App() {
 
   const startQuiz = (params) => {
     setStartParams(params);
+    setForceOpenSettings(false);
+    setView("quiz");
+  };
+
+  // ⬅️ от Начален екран — отвори директно настройките в QuizDemo
+  const openSettingsFromStart = () => {
+    setStartParams(null);
+    setForceOpenSettings(true);
     setView("quiz");
   };
 
   const goHome = () => {
     setView("start");
     setStartParams(null);
+    setForceOpenSettings(false);
   };
 
   return (
     <>
-      {view === "start" && <StartScreen onSelectTopic={goToTopic} />}
+      {view === "start" && (
+        <StartScreen
+          onSelectTopic={goToTopic}
+          onOpenSettings={openSettingsFromStart}  // ⬅️ нов проп към StartScreen
+        />
+      )}
+
       {view === "topic" && (
         <TopicDetail
           topic={startParams}
@@ -32,17 +48,20 @@ export default function App() {
           onStartQuiz={startQuiz}
         />
       )}
+
       {view === "quiz" && (
         <QuizDemo
-  autoStart
-  initialFilters={{
-    classId: startParams?.classId,
-    lessonName: startParams?.topicName,         // пример: "Линейни уравнения"
-    difficulty: startParams?.difficulty,        // "easy" | "medium" | "hard" | "all"
-    questionCount: startParams?.questionCount,  // число, напр. 8
-    perQuestionSeconds: startParams?.perQuestionSeconds, // число, напр. 25
-  }}
-/>
+          autoStart
+          forceOpenSettings={forceOpenSettings}    // ⬅️ нов проп към QuizDemo
+          initialFilters={{
+            classId: startParams?.classId,
+            lessonName: startParams?.topicName,
+            difficulty: startParams?.difficulty,
+            questionCount: startParams?.questionCount,
+            perQuestionSeconds: startParams?.perQuestionSeconds,
+          }}
+          onExit={goHome}
+        />
       )}
     </>
   );
