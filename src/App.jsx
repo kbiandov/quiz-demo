@@ -190,8 +190,31 @@ function Quiz({ lesson, questions, onFinish, settings }){
 
 function HomeScreen({ onGo }){
   const tiles=[{key:"theory",label:"Теория",icon:"📘"},{key:"tests",label:"Тестове",icon:"📝"},{key:"results",label:"Резултати",icon:"✅"},{key:"stats",label:"Статистика",icon:"📊"}];
-  return (<div className="mx-auto max-w-4xl p-6"><div className="grid-tiles">{tiles.map(t=>(
-    <SquareButton key={t.key} icon={t.icon} label={t.label} onClick={()=>onGo(t.key)} />))}</div></div>);
+  return (
+    <div className="mx-auto max-w-4xl p-6">
+      {/* Профилен ред */}
+      <div className="mb-6 p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
+        <div className="text-center">
+          <div className="text-lg font-medium">👤 {profile?.name || "Гост"}</div>
+          <div className="text-sm text-slate-600">
+            {profile?.classId ? `Клас: ${profile.classId}` : "Без клас"}
+          </div>
+        </div>
+      </div>
+
+      {/* Квадратни бутони (остават същите) */}
+      <div className="grid-tiles">
+        {tiles.map(tile => (
+          <SquareButton 
+            key={tile.key}
+            icon={tile.icon}
+            label={tile.label}
+            onClick={() => onGo(tile.key)}
+          />
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function TheoryScreen(){ return (<div className="max-w-3xl mx-auto p-6 text-slate-700"><h2 className="text-xl font-semibold mb-3">Теория</h2><p>Тук може да показваме резюмета по уроци или да вградим външни материали. В момента е placeholder.</p></div>); }
