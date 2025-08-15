@@ -310,7 +310,7 @@ function SettingsModal({ isOpen, onClose, settings, onSave }) {
 
           <div className="pt-4 flex justify-end gap-2">
             <button type="button" className="btn" onClick={onClose}>Отказ</button>
-            <button type="button" className="btn bg-blue-600 text-white" 
+            <button type="button" className="btn btn-primary bg-blue-600 text-white" 
               onClick={() => { onSave(localSettings); onClose(); }}>Запази</button>
           </div>
         </div>
