@@ -11,7 +11,7 @@ const SHEETS = {
 const STORAGE_KEYS = {
   profile: "mathapp_profile_v1",
   results: "mathapp_results_v1",
-  settings: "mathapp_settings_v1",
+  settings: "mathapp_settings_v1"
 };
 
 function useLocalStorage(key, initialValue) {
@@ -262,6 +262,63 @@ function SimpleTabs({ defaultValue, tabs }){
   </div>);
 }
 
+function SettingsModal({ isOpen, onClose, settings, onSave }) {
+  const [localSettings, setLocalSettings] = useState(settings);
+  
+  if (!isOpen) return null;
+  
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <h2 className="text-xl font-semibold mb-4">Настройки</h2>
+        
+        <div className="space-y-4">
+          <label className="flex items-center gap-3">
+            <input type="checkbox" checked={localSettings.showExplanation} 
+              onChange={(e) => setLocalSettings(s => ({...s, showExplanation: e.target.checked}))} />
+            <span>Показвай обяснения след отговор</span>
+          </label>
+
+          <label className="flex items-center gap-3">
+            <input type="checkbox" checked={localSettings.shuffleQuestions} 
+              onChange={(e) => setLocalSettings(s => ({...s, shuffleQuestions: e.target.checked}))} />
+            <span>Разбърквай въпроси</span>
+          </label>
+
+          <label className="flex items-center gap-3">
+            <input type="checkbox" checked={localSettings.shuffleOptions} 
+              onChange={(e) => setLocalSettings(s => ({...s, shuffleOptions: e.target.checked}))} />
+            <span>Разбърквай отговори</span>
+          </label>
+
+          <label className="flex items-center gap-3">
+            <input type="checkbox" checked={localSettings.instantNext} 
+              onChange={(e) => setLocalSettings(s => ({...s, instantNext: e.target.checked}))} />
+            <span>Автоматично следващ въпрос</span>
+          </label>
+
+          {localSettings.instantNext && (
+            <div className="pl-8">
+              <label className="flex items-center gap-3">
+                <span>Забавяне (секунди):</span>
+                <input type="number" min="1" max="10" value={localSettings.instantDelaySec} 
+                  onChange={(e) => setLocalSettings(s => ({...s, instantDelaySec: Number(e.target.value)}))} 
+                  className="w-16 border rounded px-2 py-1" />
+              </label>
+            </div>
+          )}
+
+          <div className="pt-4 flex justify-end gap-2">
+            <button type="button" className="btn" onClick={onClose}>Отказ</button>
+            <button type="button" className="btn bg-blue-600 text-white" 
+              onClick={() => { onSave(localSettings); onClose(); }}>Запази</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function MathApp(){
   const { classes, subjects, lessons, questions, loading, error } = useSheetsData();
   const [profile,setProfile] = useLocalStorage(STORAGE_KEYS.profile, null);
@@ -293,6 +350,14 @@ export default function MathApp(){
     {route==="tests" && (<TestsScreen profile={profile} lessons={lessons} classes={classes} questions={questions} onStartQuiz={(lesson,qs)=> setActiveQuiz({ lesson, questions: qs })} />)}
     {route==="results" && (<ResultsScreen results={results} classes={classes} lessons={lessons} canRestart={!!lastQuiz} onRestart={()=> lastQuiz && setActiveQuiz({ lesson: lastQuiz.lesson, questions: lastQuiz.questions })} />)}
     {route==="stats" && <StatsScreen results={results} />}
+    {settingsOpen && (
+      <SettingsModal 
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        settings={settings}
+        onSave={setSettings}
+      />
+    )}
   </div>);
 }
 
