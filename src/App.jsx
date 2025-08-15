@@ -190,6 +190,7 @@ function Quiz({ lesson, questions, onFinish, settings }){
 
 function HomeScreen({ onGo }){
   const tiles=[{key:"theory",label:"Теория",icon:"📘"},{key:"tests",label:"Тестове",icon:"📝"},{key:"results",label:"Резултати",icon:"✅"},{key:"stats",label:"Статистика",icon:"📊"}];
+  
   return (
     <div className="mx-auto max-w-4xl p-6">
       {/* Профилен ред */}
