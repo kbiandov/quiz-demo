@@ -3,6 +3,17 @@ import React from "react";
 export default function TheoryModal({ isOpen, onClose, theoryItem, onStartTest, lesson }) {
   if (!isOpen || !theoryItem) return null;
 
+  const handleStartTest = () => {
+    if (onStartQuiz && lesson) {
+      onStartQuiz(lesson, questions);
+    }
+  };
+
+  const handleStartTestAndClose = () => {
+    onStartTest(lesson);
+    onClose();
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
@@ -68,10 +79,7 @@ export default function TheoryModal({ isOpen, onClose, theoryItem, onStartTest, 
               Затвори
             </button>
             <button
-              onClick={() => {
-                onStartTest(lesson);
-                onClose();
-              }}
+              onClick={handleStartTestAndClose}
               className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
             >
               Започни тест

@@ -168,6 +168,26 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
   const isCorrect = chosen && chosen.toUpperCase() === current.__correctKey;
   const adProgress = ((AD_SECONDS - adLeft) / AD_SECONDS) * 100;
 
+  const handleNext = () => {
+    setIndex(index + 1);
+    if (explanationTimer) {
+      clearTimeout(explanationTimer);
+      setExplanationTimer(null);
+    }
+    setShowExplanation(false);
+  };
+
+  const handleShowConfirm = () => setShowConfirm(true);
+  const handleHideConfirm = () => setShowConfirm(false);
+  
+  const handleFinishQuiz = () => {
+    const {correct, wrong, unanswered, total} = computeScore();
+    onFinish({ lesson, correct, wrong, unanswered, total, answers, at: new Date().toISOString(), timeLimitMin: settings?.timeLimitMin, qlist });
+  };
+
+  const handleDotClick = (i) => setIndex(i);
+  const handleAnswerClick = (optKey) => choose(optKey);
+
   return (<div className="max-w-3xl mx-auto p-4">
     {/* Points Indicator */}
     <div className="mb-4 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-lg p-3 text-white text-center">
@@ -222,28 +242,25 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
       <div className="flex justify-center mt-2">
         <div className="flex space-x-1">
           {Array.from({ length: total }, (_, i) => {
-            const hasAnswer = answers[qlist[i]?.id];
-            const isAnswered = hasAnswer !== undefined;
-            const isCurrent = i === index;
-            const isCompleted = i < index;
-            
-            const dotClasses = `w-3 h-3 rounded-full transition-all duration-200 cursor-pointer ${
-              isCompleted ? 'bg-green-500' : 
-              isCurrent ? 'bg-blue-500' : 
-              isAnswered ? 'bg-yellow-500' : 
-              'bg-slate-300'
-            } ${isAnswered ? 'ring-2 ring-offset-1 ring-yellow-400' : ''}`;
+            const isAnswered = answers[qlist[i]?.id];
+            const dotClasses = `w-3 h-3 rounded-full transition-all ${
+              i === index 
+                ? 'bg-blue-600 scale-125' 
+                : isAnswered 
+                  ? 'bg-green-500' 
+                  : 'bg-slate-300 hover:bg-slate-400'
+            }`;
             
             const dotTitle = `Въпрос ${i + 1}${isAnswered ? ' - Отговорен' : ''}`;
             
-            const handleDotClick = () => setIndex(i);
+            const handleClick = () => handleDotClick(i);
             
             return (
-              <div
+              <button
                 key={i}
                 className={dotClasses}
                 title={dotTitle}
-                onClick={handleDotClick}
+                onClick={handleClick}
               />
             );
           })}
@@ -262,7 +279,7 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
               : 'hover:bg-slate-50'
           } ${answers[current.id] ? 'cursor-default' : ''}`;
           
-          const handleClick = () => choose(o.key);
+          const handleClick = () => handleAnswerClick(o.key);
           
           return (
             <button 
@@ -287,11 +304,11 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
     </div></div>
     <div className="flex items-center justify-between">
       {index < total - 1 ? (
-        <button type="button" className="btn" onClick={() => setIndex(index + 1)}>
+        <button type="button" className="btn" onClick={handleNext}>
           Следващ въпрос
         </button>
       ) : (
-        <button type="button" className="btn" onClick={() => setShowConfirm(true)}>
+        <button type="button" className="btn" onClick={handleShowConfirm}>
           Приключи
         </button>
       )}
@@ -300,7 +317,7 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
       </div>
     </div>
     {showConfirm && (
-      <div className="modal-backdrop" onClick={() => setShowConfirm(false)}>
+      <div className="modal-backdrop" onClick={handleHideConfirm}>
         <div className="modal" onClick={(e) => e.stopPropagation()}>
           <div className="mb-2 font-semibold text-lg">Готов ли си да предадеш теста?</div>
           <div className="text-xs text-slate-500 mb-2">Провери обобщението по-долу и натисни „Предай".</div>
@@ -336,10 +353,7 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
             })()}
           </div>
           <div className="flex justify-end gap-2">
-            <button type="button" className="btn" onClick={() => {
-              const {correct, wrong, unanswered, total} = computeScore();
-              onFinish({ lesson, correct, total, answers, at: new Date().toISOString(), timeLimitMin: settings?.timeLimitMin });
-            }}>
+            <button type="button" className="btn" onClick={handleFinishQuiz}>
               Предай
             </button>
           </div>

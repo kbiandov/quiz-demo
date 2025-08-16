@@ -55,9 +55,12 @@ export default function HomeScreen({ onGo, profile }){
         </div>
         {/* Navigation Tiles */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {tiles.map(t => (
-            <SquareButton key={t.key} icon={t.icon} label={t.label} onClick={() => handleTileClick(t.key)} />
-          ))}
+          {tiles.map(t => {
+            const handleClick = () => handleTileClick(t.key);
+            return (
+              <SquareButton key={t.key} icon={t.icon} label={t.label} onClick={handleClick} />
+            );
+          })}
         </div>
       </div>
     </div>

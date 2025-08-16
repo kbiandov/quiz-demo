@@ -11,6 +11,8 @@ export default function ResultsScreen({ results = [], classes = [], lessons = []
     setIsModalOpen(true);
   };
 
+  const handleResultRowClick = (result) => handleResultClick(result);
+
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setActiveResult(null);
@@ -60,7 +62,8 @@ export default function ResultsScreen({ results = [], classes = [], lessons = []
         
         {/* Results List */}
         <div className="space-y-4">
-          {results.map((result, index) => {
+          {results.map(result => {
+            const handleClick = () => handleResultClick(result);
             const percentage = Math.round((result.correct / result.total) * 100);
             const date = new Date(result.at).toLocaleDateString('bg-BG', {
               year: 'numeric',
@@ -72,9 +75,9 @@ export default function ResultsScreen({ results = [], classes = [], lessons = []
 
             return (
               <div
-                key={index}
-                className="bg-white rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-all cursor-pointer"
-                onClick={() => handleResultClick(result)}
+                key={result.at}
+                className="bg-white rounded-lg border p-4 hover:bg-slate-50 cursor-pointer transition-colors"
+                onClick={handleClick}
               >
                 <div className="p-6">
                   <div className="flex items-center justify-between">

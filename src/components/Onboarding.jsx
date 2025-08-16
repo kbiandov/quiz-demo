@@ -5,6 +5,8 @@ export default function Onboarding({ classes, onDone }){
   const [name,setName] = useState(""); const [classId,setClassId] = useState("");
   const canContinue = name.trim().length >= 2 && classId;
   const handleContinue = () => onDone({ name: name.trim(), classId });
+  const handleNameChange = (e) => setName(e.target.value);
+  const handleClassChange = (e) => setClassId(e.target.value);
   
   return (<div className="min-h-screen bg-gradient-to-b from-white to-slate-50">
     <div className="mx-auto max-w-md px-4 py-10">
@@ -16,7 +18,7 @@ export default function Onboarding({ classes, onDone }){
             className="w-full rounded-lg border border-slate-300 px-3 py-2" 
             placeholder="напр. Алекс" 
             value={name} 
-            onChange={(e) => setName(e.target.value)} 
+            onChange={handleNameChange} 
           />
         </div>
         <div className="mb-4">
@@ -24,7 +26,7 @@ export default function Onboarding({ classes, onDone }){
           <select 
             className="w-full rounded-lg border border-slate-300 px-3 py-2" 
             value={classId} 
-            onChange={(e) => setClassId(e.target.value)}
+            onChange={handleClassChange}
           >
             <option value="">Избери клас</option>
             {classes.map((c) => (

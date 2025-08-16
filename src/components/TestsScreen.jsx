@@ -5,19 +5,23 @@ function SimpleTabs({ defaultValue, tabs }){
   const [val, setVal] = useState(defaultValue || (tabs[0] && tabs[0].value));
   
   const handleTabClick = (tabValue) => setVal(tabValue);
+  const handleStartQuizClick = (lesson, qs) => handleStartQuiz(lesson, qs);
   
   return (<div>
     <div className="grid grid-cols-2 w-full gap-2">
-      {tabs.map(t => (
-        <button 
-          type="button" 
-          key={t.value} 
-          onClick={() => handleTabClick(t.value)} 
-          className={`btn ${val === t.value ? 'bg-blue-50 border-blue-300' : ''}`}
-        >
-          {t.label}
-        </button>
-      ))}
+      {tabs.map(t => {
+        const handleClick = () => handleTabClick(t.value);
+        return (
+          <button
+            type="button"
+            key={t.value}
+            onClick={handleClick}
+            className={`btn ${val === t.value ? 'bg-blue-50 border-blue-300' : ''}`}
+          >
+            {t.label}
+          </button>
+        );
+      })}
     </div>
     <div className="pt-4">{tabs.find(t => t.value === val)?.content}</div>
   </div>);
@@ -66,6 +70,9 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
     const lessonId = normalizeId(lesson.id);
     const currentCount = questionCounts[lessonId] || qs.length;
     
+    const handleStartClick = () => handleStartQuiz(lesson, qs);
+    const handleCountChange = (e) => handleQuestionCountChange(lessonId, parseInt(e.target.value));
+    
     if (!qs.length) {
       return (
         <div key={lessonId} className="card hover:shadow-md transition">
@@ -87,8 +94,9 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
             <div className="font-medium">{lesson.title || lesson.name}</div>
             <button 
               type="button" 
-              className="btn" 
-              onClick={() => handleStartQuiz(lesson, qs)}
+              className="btn btn-primary" 
+              onClick={handleStartClick}
+              disabled={!qs.length}
             >
               Старт
             </button>
@@ -101,7 +109,7 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
               <label className="text-xs text-slate-600">Брой:</label>
               <select
                 value={currentCount}
-                onChange={(e) => handleQuestionCountChange(lessonId, parseInt(e.target.value))}
+                onChange={handleCountChange}
                 className="text-xs border border-slate-300 rounded px-2 py-1 bg-white"
               >
                 {qs.length <= 5 ? (
