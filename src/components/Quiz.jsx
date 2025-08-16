@@ -1,8 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { usePoints } from "../hooks/usePoints";
 
 export default function Quiz({ lesson, questions, onFinish, settings }){
-  const [index,setIndex] = useState(0);
-  const [answers,setAnswers] = useState({});
+  const { addPoints, points, level } = usePoints();
+  const [index, setIndex] = useState(0);
+  const [answers, setAnswers] = useState({});
+  const [startTime, setStartTime] = useState(Date.now());
+  const [showExplanation, setShowExplanation] = useState(false);
+  const [explanationTimer, setExplanationTimer] = useState(null);
+  const timeoutRef = useRef(null);
   const [showConfirm,setShowConfirm] = useState(false);
   const [timeLeft,setTimeLeft] = useState(()=> (settings?.timeLimitMin || 0)*60);
   const autoTimerRef = useRef(null);
@@ -35,19 +41,42 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
   useEffect(()=>{ if(!showConfirm) return; setAdLeft(AD_SECONDS); const tick=setInterval(()=>{ setAdLeft(s=>{ if(s<=1){ clearInterval(tick); return 0; } return s-1; }); },1000); return ()=>clearInterval(tick); },[showConfirm]);
 
   function choose(optKey){
-    // Only allow choosing if no answer has been selected yet
-    if (answers[current.id]) {
-      return; // Prevent changing answers
+    if (answers[current.id]) { return; } // Prevent changing answers
+    setAnswers(a=>({...a,[current.id]:optKey}));
+    
+    // Check if answer is correct and add points
+    if (optKey === current.__correctKey) {
+      addPoints(10);
     }
     
-    setAnswers(a=>({...a,[current.id]:optKey}));
-    if (settings?.instantNext){
-      if (autoTimerRef.current){ clearTimeout(autoTimerRef.current); autoTimerRef.current=null; }
-      const delayMs = Math.max(1, Number(settings.instantDelaySec||4))*1000;
-      autoTimerRef.current = setTimeout(()=>{ autoTimerRef.current=null; if(index<total-1){ setIndex(index+1);} else { setShowConfirm(true);} }, delayMs);
+    // Show explanation if enabled
+    if (settings?.showExplanation) {
+      setShowExplanation(true);
+      if (settings?.instantNext) {
+        const timer = setTimeout(() => {
+          next();
+        }, (settings?.instantDelaySec || 4) * 1000);
+        setExplanationTimer(timer);
+      }
+    } else {
+      // Auto-advance if no explanation
+      setTimeout(next, 1000);
     }
   }
   
+  function next() {
+    if (index < total - 1) {
+      setIndex(index + 1);
+      setShowExplanation(false);
+      if (explanationTimer) {
+        clearTimeout(explanationTimer);
+        setExplanationTimer(null);
+      }
+    } else {
+      setShowConfirm(true);
+    }
+  }
+
   function computeScore(){ 
     let correct=0; 
     let wrong=0;
@@ -77,6 +106,17 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
   const adProgress=((AD_SECONDS-adLeft)/AD_SECONDS)*100;
 
   return (<div className="max-w-3xl mx-auto p-4">
+    {/* Points Indicator */}
+    <div className="mb-4 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-lg p-3 text-white text-center">
+      <div className="flex items-center justify-center gap-4 text-sm">
+        <span className="flex items-center gap-1">
+          ⭐ <span className="font-semibold">{points} т.</span>
+        </span>
+        <span className="text-white/80">|</span>
+        <span className="font-semibold">Ниво {level}</span>
+      </div>
+    </div>
+    
     <div className="mb-4">
       <div className="flex items-center justify-between mb-2">
         <div className="text-sm text-slate-600">Урок: <span className="font-medium text-slate-800">{lesson.title || lesson.name}</span></div>

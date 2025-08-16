@@ -7,7 +7,8 @@ export const SHEETS = {
 };
 
 export const STORAGE_KEYS = {
-  profile: "mathapp_profile_v1",
-  results: "mathapp_results_v1",
-  settings: "mathapp_settings_v1",
+  profile: "math-app-profile",
+  results: "math-app-results", 
+  settings: "math-app-settings",
+  points: "math-app-points"
 };
