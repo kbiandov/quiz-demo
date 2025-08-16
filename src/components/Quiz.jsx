@@ -360,6 +360,8 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
               const score = computeScore();
               const correct = score.correct;
               const wrong = score.wrong;
+              const unanswered = score.unanswered;
+              const total = score.total;
               return (
                 <div className="space-y-2">
                   <div className="grid grid-cols-2 gap-4 text-center">
