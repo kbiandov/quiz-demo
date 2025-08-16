@@ -31,7 +31,15 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
   const [questionCounts, setQuestionCounts] = useState({});
   
   const lessonsByClass = useMemo(() => {
-    return groupBy(lessons, (l) => normalizeId(l.class_id || l.classId || l.class || l.grade));
+    const grouped = {};
+    lessons.forEach(lesson => {
+      const classId = normalizeId(lesson.class_id || lesson.classId);
+      if (classId) {
+        if (!grouped[classId]) grouped[classId] = [];
+        grouped[classId].push(lesson);
+      }
+    });
+    return grouped;
   }, [lessons]);
   
   const classList = useMemo(() => {

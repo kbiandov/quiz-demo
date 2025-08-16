@@ -38,13 +38,7 @@ export default function TheoryScreen(props) {
   const urlLessonId = searchParams.get('lesson');
   
   // Local state
-  const [activeClassId, setActiveClassId] = useState(() => {
-    const profileClassId = profile?.classId;
-    if (profileClassId && theory.some(item => item.classId === Number(profileClassId))) {
-      return Number(profileClassId);
-    }
-    return null;
-  });
+  const [activeClassId, setActiveClassId] = useState(profile?.classId ? Number(profile.classId) : null);
   const [activeLessonId, setActiveLessonId] = useState(urlLessonId || '');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
@@ -56,9 +50,7 @@ export default function TheoryScreen(props) {
 
   // Debounce search input
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery);
-    }, 250);
+    const timer = setTimeout(() => setDebouncedSearchQuery(searchQuery), 250);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
@@ -74,43 +66,25 @@ export default function TheoryScreen(props) {
   const filteredTheory = useMemo(() => {
     let filtered = theory;
     
-    console.log('Filtering theory data:', {
-      totalTheory: theory.length,
-      activeClassId,
-      activeLessonId,
-      searchQuery: debouncedSearchQuery
-    });
-
-    // Filter by class
     if (activeClassId) {
-      const beforeClassFilter = filtered.length;
       filtered = filtered.filter(item => item.classId === activeClassId);
-      console.log(`Class filter: ${beforeClassFilter} -> ${filtered.length} items`);
     }
-
-    // Filter by lesson (if specified)
-    if (activeLessonId && activeLessonId !== 'all') {
-      const beforeLessonFilter = filtered.length;
+    
+    if (activeLessonId) {
       filtered = filtered.filter(item => item.lessonId === activeLessonId);
-      console.log(`Lesson filter: ${beforeLessonFilter} -> ${filtered.length} items`);
     }
-
-    // Filter by search query
-    if (debouncedSearchQuery.trim()) {
-      const beforeSearchFilter = filtered.length;
-      const query = debouncedSearchQuery.toLowerCase();
+    
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
       filtered = filtered.filter(item => 
         item.title.toLowerCase().includes(query) || 
         item.content.toLowerCase().includes(query)
       );
-      console.log(`Search filter: ${beforeSearchFilter} -> ${filtered.length} items`);
     }
-
-    console.log('Final filtered theory:', filtered);
+    
     return filtered;
-  }, [theory, activeClassId, activeLessonId, debouncedSearchQuery]);
-
-  // Get available classes and lessons for filters
+  }, [theory, activeClassId, activeLessonId, searchQuery]);
+  
   const availableClasses = useMemo(() => {
     const classIds = [...new Set(theory.map(item => item.classId).filter(Boolean))];
     return classIds.map(classId => {
@@ -119,7 +93,7 @@ export default function TheoryScreen(props) {
       return { id: classId, name };
     }).sort((a, b) => a.id - b.id);
   }, [theory, classes]);
-
+  
   const availableLessons = useMemo(() => {
     if (!activeClassId) return [];
     

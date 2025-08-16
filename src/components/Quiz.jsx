@@ -10,10 +10,7 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
   const [explanationTimer, setExplanationTimer] = useState(null);
   const timeoutRef = useRef(null);
   const [showConfirm,setShowConfirm] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(() => {
-    const timeLimit = settings?.timeLimitMin || 0;
-    return timeLimit * 60;
-  });
+  const [timeLeft, setTimeLeft] = useState(settings?.timeLimitMin ? settings.timeLimitMin * 60 : 0);
   const [adLeft, setAdLeft] = useState(0);
   
   const autoTimerRef = useRef(null);
@@ -22,8 +19,7 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
   const qlist = useMemo(() => {
     const base = [...questions];
     if (settings?.shuffleQuestions) {
-      const shuffleFunction = () => Math.random() - 0.5;
-      base.sort(shuffleFunction);
+      base.sort(() => Math.random() - 0.5);
     }
     return base.map(q => {
       const options = [
@@ -35,10 +31,7 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
       
       const correctKey = String(q.correct || q.correct_option || q.answer || '').toUpperCase();
       const correctText = { A: q.A, B: q.B, C: q.C, D: q.D }[correctKey];
-      const shuffled = settings?.shuffleOptions ? (() => {
-        const shuffleFunction = () => Math.random() - 0.5;
-        return [...options].sort(shuffleFunction);
-      })() : options;
+      const shuffled = settings?.shuffleOptions ? [...options].sort(() => Math.random() - 0.5) : options;
       const newCorrectKey = (shuffled.find(o => o.text === correctText) || {}).key || correctKey;
       
       return { ...q, __options: shuffled, __correctKey: newCorrectKey };
@@ -60,10 +53,7 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
       { key: 'D', text: current.D || current.d }
     ].filter(o => o.text != null && String(o.text).trim() !== '');
     
-    const shuffled = settings?.shuffleOptions ? (() => {
-      const shuffleFunction = () => Math.random() - 0.5;
-      return [...opts].sort(shuffleFunction);
-    })() : opts;
+    const shuffled = settings?.shuffleOptions ? [...opts].sort(() => Math.random() - 0.5) : opts;
     return shuffled;
   }, [current, settings?.shuffleOptions]);
 
@@ -82,7 +72,7 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
       return;
     }
     
-    const t = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
+    const t = setTimeout(() => setTimeLeft(prev => prev - 1), 1000);
     return () => clearTimeout(t);
   }, [timeLeft, settings?.timeLimitMin]);
 
@@ -115,9 +105,7 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
     if (settings?.showExplanation) {
       setShowExplanation(true);
       if (settings?.instantNext) {
-        const timer = setTimeout(() => {
-          next();
-        }, (settings?.instantDelaySec || 4) * 1000);
+        const timer = setTimeout(() => next(), (settings?.instantDelaySec || 4) * 1000);
         setExplanationTimer(timer);
       }
     } else {
