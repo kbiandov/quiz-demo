@@ -1,3 +1,5 @@
+import SquareButton from './SquareButton';
+
 export default function HomeScreen({ onGo, profile }){
   const tiles = [
     {key:"theory", label:"Теория", icon:"📘"},
