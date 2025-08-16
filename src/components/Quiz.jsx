@@ -97,7 +97,15 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
   }
   function submit(){ 
     const {correct, wrong, unanswered, total} = computeScore(); 
-    onFinish({ lesson, correct, total, answers, at:new Date().toISOString(), timeLimitMin: settings?.timeLimitMin }); 
+    onFinish({ 
+      lesson, 
+      questions: qlist, // Include questions for review
+      correct, 
+      total, 
+      answers, 
+      at: new Date().toISOString(), 
+      timeLimitMin: settings?.timeLimitMin 
+    }); 
   }
   if (!current) return <div className="p-6 text-center">Няма въпроси за този урок.</div>;
 

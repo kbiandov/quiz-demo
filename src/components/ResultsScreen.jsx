@@ -1,18 +1,153 @@
-import React, { useMemo } from "react";
-import { normalizeId } from "../utils";
+import React, { useState } from "react";
+import Modal from "./Modal";
+import ResultReview from "./ResultReview";
 
-export default function ResultsScreen({ results, classes, lessons, canRestart, onRestart }){
-  const byLessonId = useMemo(()=>{ const map = new Map(lessons.map(l=>[normalizeId(l.id),l])); return id=> map.get(normalizeId(id)); },[lessons]);
-  if (!results?.length) return <div className="p-6 text-slate-600">Все още няма предадени тестове.</div>;
+export default function ResultsScreen({ results = [], classes = [], lessons = [], canRestart = false, onRestart }) {
+  const [activeResult, setActiveResult] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleResultClick = (result) => {
+    setActiveResult(result);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setActiveResult(null);
+  };
+
+  const handleRetakeTest = () => {
+    if (activeResult && onRestart) {
+      handleCloseModal();
+      // Use questions from the result data
+      const resultQuestions = activeResult.questions || [];
+      if (resultQuestions.length > 0) {
+        onRestart(activeResult.lesson, resultQuestions);
+      } else {
+        console.warn('No questions found in result data for retake');
+      }
+    }
+  };
+
+  if (!results || results.length === 0) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <div className="max-w-4xl mx-auto p-4 sm:p-6">
+          <div className="bg-white rounded-xl p-12 text-center shadow-sm">
+            <div className="text-6xl mb-4">📊</div>
+            <h2 className="text-2xl font-semibold mb-4 text-slate-800">Няма резултати</h2>
+            <p className="text-slate-600 mb-6 text-lg">
+              Направете първия си тест за да видите резултатите тук
+            </p>
+            {canRestart && (
+              <button 
+                onClick={onRestart}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+              >
+                Направи тест отново
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-3xl mx-auto p-6">
-      <h2 className="text-xl font-semibold mb-4">Резултати</h2>
-      <div className="space-y-3">{results.map((r,i)=>{ const l=byLessonId(r.lesson?.id); const title=l?.title||l?.name||r.lesson?.title||"Урок"; const pct=r.total?Math.round((r.correct/r.total)*100):0;
-        return (
-          <div key={i} className="card"><div className="card-content flex items-center justify-between"><div><div className="font-medium">{title}</div><div className="text-xs text-slate-500">{new Date(r.at).toLocaleString()}</div></div>
-            <div className="text-right"><div className="text-lg font-semibold">{r.correct} / {r.total}</div><div className="text-xs text-slate-500">{pct}%</div></div></div></div>
-        ); })}</div>
-      <div className="mt-6"><button type="button" className="btn" onClick={onRestart} disabled={!canRestart}>Започни отначало</button></div>
+    <div className="min-h-screen bg-slate-50">
+      <div className="max-w-6xl mx-auto p-4 sm:p-6">
+        <h1 className="text-3xl font-bold text-slate-800 mb-8">Резултати</h1>
+        
+        {/* Results List */}
+        <div className="space-y-4">
+          {results.map((result, index) => {
+            const percentage = Math.round((result.correct / result.total) * 100);
+            const date = new Date(result.at).toLocaleDateString('bg-BG', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            });
+
+            return (
+              <div
+                key={index}
+                className="bg-white rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-all cursor-pointer"
+                onClick={() => handleResultClick(result)}
+              >
+                <div className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-slate-800 mb-2">
+                        {result.lesson?.title || result.lesson?.name || 'Урок'}
+                      </h3>
+                      <p className="text-sm text-slate-600 mb-3">
+                        {date} · {result.correct}/{result.total} правилни отговора
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-slate-500">
+                          {result.timeLimitMin ? `Време: ${result.timeLimitMin} мин` : 'Без време'}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="text-right ml-4">
+                      <div className={`text-2xl font-bold ${
+                        percentage >= 80 ? 'text-green-600' :
+                        percentage >= 60 ? 'text-yellow-600' :
+                        'text-red-600'
+                      }`}>
+                        {percentage}%
+                      </div>
+                      <div className="text-sm text-slate-500">Резултат</div>
+                    </div>
+                  </div>
+                  
+                  {/* Progress Bar */}
+                  <div className="mt-4">
+                    <div className="w-full bg-slate-200 rounded-full h-2">
+                      <div 
+                        className={`h-2 rounded-full transition-all duration-300 ${
+                          percentage >= 80 ? 'bg-green-500' :
+                          percentage >= 60 ? 'bg-yellow-500' :
+                          'bg-red-500'
+                        }`}
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Restart Button */}
+        {canRestart && (
+          <div className="mt-8 text-center">
+            <button
+              onClick={onRestart}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+            >
+              Направи последния тест отново
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Answer Review Modal */}
+      <Modal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        title="Преглед на резултата"
+        size="xl"
+      >
+        <ResultReview
+          result={activeResult}
+          onRetakeTest={handleRetakeTest}
+        />
+      </Modal>
     </div>
   );
 }

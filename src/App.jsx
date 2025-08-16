@@ -42,7 +42,7 @@ export default function MathApp(){
     {route==="home" && <HomeScreen onGo={setRoute} profile={profile} />}
     {route==="theory" && <TheoryScreen profile={profile} theory={theory} classes={classes} lessons={lessons} questions={questions} onStartQuiz={(lesson, questions) => setActiveQuiz({ lesson, questions })} />}
     {route==="tests" && (<TestsScreen profile={profile} lessons={lessons} classes={classes} questions={questions} onStartQuiz={(lesson,qs)=> setActiveQuiz({ lesson, questions: qs })} />)}
-    {route==="results" && (<ResultsScreen results={results} classes={classes} lessons={lessons} canRestart={!!lastQuiz} onRestart={()=> lastQuiz && setActiveQuiz({ lesson: lastQuiz.lesson, questions: lastQuiz.questions })} />)}
+    {route==="results" && (<ResultsScreen results={results} classes={classes} lessons={lessons} questions={questions} canRestart={!!lastQuiz} onRestart={()=> lastQuiz && setActiveQuiz({ lesson: lastQuiz.lesson, questions: lastQuiz.questions })} />)}
     {route==="stats" && <StatsScreen results={results} />}
     {settingsOpen && (
       <SettingsModal 
