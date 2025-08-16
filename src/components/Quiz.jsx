@@ -188,6 +188,31 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
 
   const handleDotClick = (i) => setIndex(i);
   const handleAnswerClick = (optKey) => choose(optKey);
+  
+  const renderScoreSummary = () => {
+    const score = computeScore();
+    return (
+      <div className="space-y-2">
+        <div className="grid grid-cols-2 gap-4 text-center">
+          <div className="p-3 rounded-lg bg-green-50 border border-green-200">
+            <div className="text-lg font-bold text-green-700">{score.correct}</div>
+            <div className="text-xs text-green-600">Правилни</div>
+          </div>
+          <div className="p-3 rounded-lg bg-red-50 border border-red-200">
+            <div className="text-lg font-bold text-red-700">{score.wrong}</div>
+            <div className="text-xs text-red-600">Грешни</div>
+          </div>
+        </div>
+        <div className="text-center p-2 rounded-lg bg-slate-50 border border-slate-200">
+          <div className="text-sm text-slate-600">
+            Отговорени: <b>{score.correct + score.wrong}</b> · 
+            Пропуснати: <b>{score.unanswered}</b> · 
+            Общо: <b>{score.total}</b>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (<div className="max-w-3xl mx-auto p-4">
     {/* Points Indicator */}
@@ -332,30 +357,7 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
             <div style={{width: `${adProgress}%`}}/>
           </div>
           <div className="mt-1 mb-4 text-sm text-slate-700">
-            {(() => {
-              const score = computeScore();
-              return (
-                <div className="space-y-2">
-                  <div className="grid grid-cols-2 gap-4 text-center">
-                    <div className="p-3 rounded-lg bg-green-50 border border-green-200">
-                      <div className="text-lg font-bold text-green-700">{score.correct}</div>
-                      <div className="text-xs text-green-600">Правилни</div>
-                    </div>
-                    <div className="p-3 rounded-lg bg-red-50 border border-red-200">
-                      <div className="text-lg font-bold text-red-700">{score.wrong}</div>
-                      <div className="text-xs text-red-600">Грешни</div>
-                    </div>
-                  </div>
-                  <div className="text-center p-2 rounded-lg bg-slate-50 border border-slate-200">
-                    <div className="text-sm text-slate-600">
-                      Отговорени: <b>{score.correct + score.wrong}</b> · 
-                      Пропуснати: <b>{score.unanswered}</b> · 
-                      Общо: <b>{score.total}</b>
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
+            {renderScoreSummary()}
           </div>
           <div className="flex justify-end gap-2">
             <button type="button" className="btn" onClick={handleFinishQuiz}>

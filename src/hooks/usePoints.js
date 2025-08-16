@@ -19,9 +19,7 @@ export function usePoints() {
   }, [setPoints]);
   
   // Reset points function (for testing)
-  const resetPoints = useCallback(() => {
-    setPoints(0);
-  }, [setPoints]);
+  const resetPoints = useCallback(() => setPoints(0), [setPoints]);
   
   return {
     points,
