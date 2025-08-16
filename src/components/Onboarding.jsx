@@ -4,6 +4,8 @@ import { normalizeId } from "../utils";
 export default function Onboarding({ classes, onDone }){
   const [name,setName] = useState(""); const [classId,setClassId] = useState("");
   const canContinue = name.trim().length >= 2 && classId;
+  const handleContinue = () => onDone({ name: name.trim(), classId });
+  
   return (<div className="min-h-screen bg-gradient-to-b from-white to-slate-50">
     <div className="mx-auto max-w-md px-4 py-10">
       <h1 className="text-2xl font-bold mb-2">Добре дошъл! 🎓</h1>
@@ -35,7 +37,7 @@ export default function Onboarding({ classes, onDone }){
         <button 
          type="button" 
          className="btn w-full" 
-         onClick={() => onDone({ name: name.trim(), classId })} 
+         onClick={handleContinue} 
          disabled={!canContinue}
        >
          Продължи

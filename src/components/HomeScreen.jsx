@@ -25,6 +25,8 @@ export default function HomeScreen({ onGo, profile }){
     { key: "stats", icon: "📈", label: "Статистики" }
   ];
 
+  const handleTileClick = (key) => onGo(key);
+  
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="max-w-4xl mx-auto p-4 sm:p-6">
@@ -51,11 +53,10 @@ export default function HomeScreen({ onGo, profile }){
             </div>
           </div>
         </div>
-
         {/* Navigation Tiles */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {tiles.map(t => (
-            <SquareButton key={t.key} icon={t.icon} label={t.label} onClick={() => onGo(t.key)} />
+            <SquareButton key={t.key} icon={t.icon} label={t.label} onClick={() => handleTileClick(t.key)} />
           ))}
         </div>
       </div>

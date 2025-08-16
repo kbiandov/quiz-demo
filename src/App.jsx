@@ -38,27 +38,36 @@ export default function MathApp(){
   }
   function resetProfile(){ setProfile(null); setRoute("onboarding"); }
 
-  if (loading) return (<div className="min-h-screen grid place-items-center"><div className="text-center"><div className="animate-pulse text-2xl font-semibold">Зареждаме данните…</div><div className="text-sm text-slate-500 mt-2">Google Sheets CSV</div></div></div>);
-  if (error) return (<div className="min-h-screen grid place-items-center p-6"><div className="max-w-md text-center"><div className="text-xl font-semibold mb-2">Възникна грешка</div><div className="text-slate-600 mb-4">{String(error)}</div><button type="button" className="btn" onClick={() => location.reload()}>
-           Презареди
-         </button></div></div>);
-
-  if (route==="onboarding" || !profile) return <Onboarding classes={classes} onDone={(p) => { setProfile(p); setRoute("home"); }} />;
+  const handleTheoryStartQuiz = (lesson, questions) => setActiveQuiz({ lesson, questions });
+  const handleTestsStartQuiz = (lesson, qs) => setActiveQuiz({ lesson, questions: qs });
+  const handleResultsRestart = () => lastQuiz && handleRetakeTest(lastQuiz.lesson, lastQuiz.questions);
+  const handleQuizHome = () => setActiveQuiz(null);
+  const handleRouteHome = () => setRoute("home");
+  const handleOpenSettings = () => setSettingsOpen(true);
+  const handleOnboardingDone = (p) => { setProfile(p); setRoute("home"); };
+  const handleReload = () => location.reload();
+  
+  if (route==="onboarding" || !profile) return <Onboarding classes={classes} onDone={handleOnboardingDone} />;
   if (activeQuiz) return (<div className="min-h-screen bg-slate-50">
-    <HeaderBar title="Тест" profile={profile} onHome={() => setActiveQuiz(null)} onLogout={resetProfile} onOpenSettings={() => setSettingsOpen(true)} />
+    <HeaderBar title="Тест" profile={profile} onHome={handleQuizHome} onLogout={resetProfile} onOpenSettings={handleOpenSettings} />
     <Quiz lesson={activeQuiz.lesson} questions={activeQuiz.questions} onFinish={handleFinishQuiz} settings={settings} />
   </div>);
   if (route==="quiz" && activeQuiz) return (<div className="min-h-screen bg-slate-50">
-    <HeaderBar title="Тест" profile={profile} onHome={() => setRoute("home")} onLogout={resetProfile} onOpenSettings={() => setSettingsOpen(true)} />
+    <HeaderBar title="Тест" profile={profile} onHome={handleRouteHome} onLogout={resetProfile} onOpenSettings={handleOpenSettings} />
     <Quiz lesson={activeQuiz.lesson} questions={activeQuiz.questions} onFinish={handleFinishQuiz} settings={settings} />
   </div>);
 
+  if (loading) return (<div className="min-h-screen grid place-items-center"><div className="text-center"><div className="animate-pulse text-2xl font-semibold">Зареждаме данните…</div><div className="text-sm text-slate-500 mt-2">Google Sheets CSV</div></div></div>);
+  if (error) return (<div className="min-h-screen grid place-items-center p-6"><div className="max-w-md text-center"><div className="text-xl font-semibold mb-2">Възникна грешка</div><div className="text-slate-600 mb-4">{String(error)}</div><button type="button" className="btn" onClick={handleReload}>
+           Презареди
+         </button></div></div>);
+
   return (<div className="min-h-screen">
-    <HeaderBar title={routeTitle(route)} profile={profile} onHome={() => setRoute("home")} onLogout={resetProfile} onOpenSettings={() => setSettingsOpen(true)} />
+    <HeaderBar title={routeTitle(route)} profile={profile} onHome={handleRouteHome} onLogout={resetProfile} onOpenSettings={handleOpenSettings} />
     {route==="home" && <HomeScreen onGo={setRoute} profile={profile} />}
-    {route==="theory" && <TheoryScreen profile={profile} theory={theory} classes={classes} lessons={lessons} questions={questions} onStartQuiz={(lesson, questions) => setActiveQuiz({ lesson, questions })} />}
-    {route==="tests" && (<TestsScreen profile={profile} lessons={lessons} classes={classes} questions={questions} onStartQuiz={(lesson, qs) => setActiveQuiz({ lesson, questions: qs })} />)}
-    {route==="results" && (<ResultsScreen results={results} classes={classes} lessons={lessons} questions={questions} canRestart={!!lastQuiz} onRestart={() => lastQuiz && handleRetakeTest(lastQuiz.lesson, lastQuiz.questions)} />)}
+    {route==="theory" && <TheoryScreen profile={profile} theory={theory} classes={classes} lessons={lessons} questions={questions} onStartQuiz={handleTheoryStartQuiz} />}
+    {route==="tests" && (<TestsScreen profile={profile} lessons={lessons} classes={classes} questions={questions} onStartQuiz={handleTestsStartQuiz} />)}
+    {route==="results" && (<ResultsScreen results={results} classes={classes} lessons={lessons} questions={questions} canRestart={!!lastQuiz} onRestart={handleResultsRestart} />)}
     {route==="stats" && <StatsScreen results={results} />}
     {settingsOpen && (
       <SettingsModal 
