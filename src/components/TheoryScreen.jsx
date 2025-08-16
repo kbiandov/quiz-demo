@@ -30,7 +30,23 @@ export default function TheoryScreen({ profile, theory = [], classes = [], lesso
   const urlTheoryId = searchParams.get('id');
   
   // Local state
-  const [activeClassId, setActiveClassId] = useState(urlClassId ? Number(urlClassId) : (profile?.classId ? Number(profile.classId) : null));
+  const [activeClassId, setActiveClassId] = useState(() => {
+    // If URL has class, use it
+    if (urlClassId) return Number(urlClassId);
+    
+    // If profile has classId, check if theory exists for that class
+    if (profile?.classId) {
+      const profileClassId = Number(profile.classId);
+      // Check if there's theory data for the user's class
+      const hasTheoryForProfileClass = theory.some(item => item.classId === profileClassId);
+      if (hasTheoryForProfileClass) {
+        return profileClassId;
+      }
+    }
+    
+    // Default to null (show all classes)
+    return null;
+  });
   const [activeLessonId, setActiveLessonId] = useState(urlLessonId || '');
   const [selectedId, setSelectedId] = useState(urlTheoryId || '');
   const [searchQuery, setSearchQuery] = useState('');
@@ -56,26 +72,40 @@ export default function TheoryScreen({ profile, theory = [], classes = [], lesso
   // Filter theory items based on current filters
   const filteredTheory = useMemo(() => {
     let filtered = theory;
+    
+    console.log('Filtering theory data:', {
+      totalTheory: theory.length,
+      activeClassId,
+      activeLessonId,
+      searchQuery: debouncedSearchQuery
+    });
 
     // Filter by class
     if (activeClassId) {
+      const beforeClassFilter = filtered.length;
       filtered = filtered.filter(item => item.classId === activeClassId);
+      console.log(`Class filter: ${beforeClassFilter} -> ${filtered.length} items`);
     }
 
     // Filter by lesson (if specified)
     if (activeLessonId && activeLessonId !== 'all') {
+      const beforeLessonFilter = filtered.length;
       filtered = filtered.filter(item => item.lessonId === activeLessonId);
+      console.log(`Lesson filter: ${beforeLessonFilter} -> ${filtered.length} items`);
     }
 
     // Filter by search query
     if (debouncedSearchQuery.trim()) {
+      const beforeSearchFilter = filtered.length;
       const query = debouncedSearchQuery.toLowerCase();
       filtered = filtered.filter(item => 
         item.title.toLowerCase().includes(query) || 
         item.content.toLowerCase().includes(query)
       );
+      console.log(`Search filter: ${beforeSearchFilter} -> ${filtered.length} items`);
     }
 
+    console.log('Final filtered theory:', filtered);
     return filtered;
   }, [theory, activeClassId, activeLessonId, debouncedSearchQuery]);
 
@@ -414,9 +444,27 @@ export default function TheoryScreen({ profile, theory = [], classes = [], lesso
           <div className="bg-white rounded-xl p-12 text-center shadow-sm">
             <div className="text-6xl mb-4">📚</div>
             <h3 className="text-xl font-semibold text-slate-800 mb-2">Няма налична теория</h3>
-            <p className="text-slate-600">
-              Няма налична теория за избрания филтър. Опитайте да промените критериите за търсене.
+            <p className="text-slate-600 mb-4">
+              {activeClassId 
+                ? `Няма налична теория за клас ${activeClassId}. Опитайте да промените филтъра за клас или да използвате търсенето.`
+                : 'Няма налична теория за избрания филтър. Опитайте да промените критериите за търсене.'
+              }
             </p>
+            {activeClassId && (
+              <div className="mt-4">
+                <button
+                  onClick={() => setActiveClassId(null)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
+                >
+                  Покажи всички класове
+                </button>
+              </div>
+            )}
+            {theory.length > 0 && (
+              <div className="mt-4 text-sm text-slate-500">
+                <p>Налична теория за класове: {[...new Set(theory.map(item => item.classId))].sort().join(', ')}</p>
+              </div>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
