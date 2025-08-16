@@ -12,28 +12,122 @@ function SimpleTabs({ defaultValue, tabs }){
 }
 
 export default function TestsScreen({ profile, lessons, classes, questions, onStartQuiz }){
+  const [questionCounts, setQuestionCounts] = useState({});
+  
   const lessonsByClass = useMemo(()=> groupBy(lessons, (l)=> normalizeId(l.class_id || l.classId || l.class || l.grade)), [lessons]);
   const classList = useMemo(()=> classes.map(c=> ({ id: normalizeId(c.id)||c.name, name: c.name||c.title||c.id })), [classes]);
   const currentClassId = profile?.classId; const currentLessons = lessonsByClass[currentClassId] || [];
+  
   function listQuestionsForLesson(lessonId){ const lid=normalizeId(lessonId); return questions.filter(q=> normalizeId(q.lesson_id||q.lessonId||q.lesson)===lid); }
+  
+  function handleQuestionCountChange(lessonId, newCount) {
+    setQuestionCounts(prev => ({
+      ...prev,
+      [lessonId]: newCount
+    }));
+  }
+  
+  function handleStartQuiz(lesson, allQuestions) {
+    const lessonId = normalizeId(lesson.id);
+    const selectedCount = questionCounts[lessonId] || allQuestions.length;
+    
+    let limitedQuestions;
+    if (selectedCount === allQuestions.length) {
+      // Use all questions as-is
+      limitedQuestions = allQuestions;
+    } else {
+      // Shuffle and take the first N questions for better randomization
+      const shuffled = [...allQuestions].sort(() => Math.random() - 0.5);
+      limitedQuestions = shuffled.slice(0, selectedCount);
+    }
+    
+    onStartQuiz(lesson, limitedQuestions);
+  }
+  
+  function renderLessonCard(lesson, isCurrentClass = false) {
+    const qs = listQuestionsForLesson(lesson.id);
+    const lessonId = normalizeId(lesson.id);
+    const currentCount = questionCounts[lessonId] || qs.length;
+    
+    if (!qs.length) {
+      return (
+        <div key={lessonId} className="card hover:shadow-md transition">
+          <div className="card-content flex items-center justify-between">
+            <div>
+              <div className="font-medium">{lesson.title || lesson.name}</div>
+              <div className="text-xs text-slate-500">Няма въпроси</div>
+            </div>
+            <button type="button" className="btn" disabled>Старт</button>
+          </div>
+        </div>
+      );
+    }
+    
+    return (
+      <div key={lessonId} className="card hover:shadow-md transition">
+        <div className="card-content">
+          <div className="flex items-center justify-between mb-3">
+            <div className="font-medium">{lesson.title || lesson.name}</div>
+            <button 
+              type="button" 
+              className="btn" 
+              onClick={() => handleStartQuiz(lesson, qs)}
+            >
+              Старт
+            </button>
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="text-xs text-slate-500">
+              Въпроси: {currentCount} / {qs.length}
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-slate-600">Брой:</label>
+              <select
+                value={currentCount}
+                onChange={(e) => handleQuestionCountChange(lessonId, parseInt(e.target.value))}
+                className="text-xs border border-slate-300 rounded px-2 py-1 bg-white"
+              >
+                {qs.length <= 5 ? (
+                  // If 5 or fewer questions, show individual options
+                  Array.from({ length: qs.length }, (_, i) => i + 1).map(count => (
+                    <option key={count} value={count}>{count}</option>
+                  ))
+                ) : (
+                  // If more than 5 questions, show common options + "All"
+                  <>
+                    <option value={qs.length}>Всички ({qs.length})</option>
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={15}>15</option>
+                    <option value={20}>20</option>
+                    {qs.length > 25 && <option value={25}>25</option>}
+                    {qs.length > 30 && <option value={30}>30</option>}
+                  </>
+                )}
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
   return (<div className="max-w-4xl mx-auto p-4">
     <SimpleTabs defaultValue="by-lesson" tabs={[
       {value:'by-lesson', label:'По тема / уроци', content:(
         <div>
           <h3 className="text-lg font-semibold mb-3">{`Уроци за ${classList.find(c=>c.id===currentClassId)?.name || "избрания клас"}`}</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">{currentLessons.map(l=>{ const qs=listQuestionsForLesson(l.id);
-            return (<div key={normalizeId(l.id)} className="card hover:shadow-md transition"><div className="card-content flex items-center justify-between">
-              <div><div className="font-medium">{l.title || l.name}</div><div className="text-xs text-slate-500">Въпроси: {qs.length}</div></div>
-              <button type="button" className="btn" onClick={()=>onStartQuiz(l, qs)} disabled={!qs.length}>Старт</button></div></div>); })}</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {currentLessons.map(l => renderLessonCard(l, true))}
+          </div>
         </div>
       )},
       {value:'by-class', label:'По класове', content:(
         <div className="space-y-4">{classList.map(cls=>(<div key={cls.id}>
           <div className="text-sm font-semibold mb-2">{cls.name}</div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">{(lessonsByClass[cls.id]||[]).map(l=>{ const qs=listQuestionsForLesson(l.id);
-            return (<div key={normalizeId(l.id)} className="card"><div className="card-content flex items-center justify-between">
-              <div><div className="font-medium">{l.title || l.name}</div><div className="text-xs text-slate-500">Въпроси: {qs.length}</div></div>
-              <button type="button" className="btn" onClick={()=>onStartQuiz(l, qs)} disabled={!qs.length}>Старт</button></div></div>); })}</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {(lessonsByClass[cls.id]||[]).map(l => renderLessonCard(l))}
+          </div>
         </div>))}</div>
       )}
     ]}/>
