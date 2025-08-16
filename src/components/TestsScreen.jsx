@@ -57,7 +57,7 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
               <div className="font-medium">{lesson.title || lesson.name}</div>
               <div className="text-xs text-slate-500">Няма въпроси</div>
             </div>
-            <button type="button" className="btn" disabled>Старт</button>
+            <button type="button" className="btn btn-primary" disabled>Старт</button>
           </div>
         </div>
       );
