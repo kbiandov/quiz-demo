@@ -25,9 +25,12 @@ export default function TheoryScreen(props) {
     questions = [], 
     onStartQuiz 
   } = props;
+  
   console.log('TheoryScreen render - theory data:', theory);
   console.log('TheoryScreen render - theory length:', theory?.length);
   console.log('TheoryScreen render - profile:', profile);
+  console.log('TheoryScreen render - classes:', classes);
+  console.log('TheoryScreen render - lessons:', lessons);
   
   const [searchParams, setSearchParams] = useURLParams();
   const [loading, setLoading] = useState(false);
@@ -37,12 +40,21 @@ export default function TheoryScreen(props) {
   const urlClassId = searchParams.get('class');
   const urlLessonId = searchParams.get('lesson');
   
-  // Local state
-  const [activeClassId, setActiveClassId] = useState(profile?.classId ? Number(profile.classId) : null);
+  // Local state - fix the class ID handling
+  const [activeClassId, setActiveClassId] = useState(() => {
+    // Try to get class ID from profile, URL, or first available class
+    if (urlClassId) return urlClassId;
+    if (profile?.classId) return profile.classId.toString();
+    if (theory.length > 0) {
+      const firstClassId = theory[0]?.class_id || theory[0]?.classId;
+      return firstClassId ? firstClassId.toString() : null;
+    }
+    return null;
+  });
   const [activeLessonId, setActiveLessonId] = useState(urlLessonId || '');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
-  
+
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedTheoryItem, setSelectedTheoryItem] = useState(null);
@@ -62,61 +74,95 @@ export default function TheoryScreen(props) {
     setSearchParams(params);
   }, [activeClassId, activeLessonId, setSearchParams]);
 
-  // Filter theory items based on current filters
+  // Filter theory items based on current filters - fix the filtering logic
   const filteredTheory = useMemo(() => {
     let filtered = theory;
     
     if (activeClassId) {
-      filtered = filtered.filter(item => item.classId === activeClassId);
+      filtered = filtered.filter(item => {
+        const itemClassId = item.class_id || item.classId;
+        return itemClassId && itemClassId.toString() === activeClassId.toString();
+      });
     }
     
-    if (activeLessonId) {
-      filtered = filtered.filter(item => item.lessonId === activeLessonId);
+    if (activeLessonId && activeLessonId !== 'all') {
+      filtered = filtered.filter(item => {
+        const itemLessonId = item.lesson_id || item.lessonId;
+        return itemLessonId && itemLessonId.toString() === activeLessonId.toString();
+      });
     }
     
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
+    if (debouncedSearchQuery.trim()) {
+      const query = debouncedSearchQuery.toLowerCase();
       filtered = filtered.filter(item => 
-        item.title.toLowerCase().includes(query) || 
-        item.content.toLowerCase().includes(query)
+        (item.title && item.title.toLowerCase().includes(query)) || 
+        (item.content && item.content.toLowerCase().includes(query))
       );
     }
     
     return filtered;
-  }, [theory, activeClassId, activeLessonId, searchQuery]);
+  }, [theory, activeClassId, activeLessonId, debouncedSearchQuery]);
   
+  // Fix the available classes logic
   const availableClasses = useMemo(() => {
-    const classIds = [...new Set(theory.map(item => item.classId).filter(Boolean))];
+    const classIds = [...new Set(
+      theory
+        .map(item => item.class_id || item.classId)
+        .filter(Boolean)
+        .map(id => id.toString())
+    )];
+    
     return classIds.map(classId => {
-      const classInfo = classes.find(c => normalizeId(c.id) === classId.toString() || c.id === classId);
+      const classInfo = classes.find(c => 
+        normalizeId(c.id) === classId || 
+        c.id.toString() === classId ||
+        c.name === classId
+      );
       const name = classInfo?.name || classInfo?.title || `Клас ${classId}`;
       return { id: classId, name };
-    }).sort((a, b) => a.id - b.id);
+    }).sort((a, b) => {
+      // Sort numerically if possible, otherwise alphabetically
+      const aNum = parseInt(a.id);
+      const bNum = parseInt(b.id);
+      if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
+      return a.name.localeCompare(b.name);
+    });
   }, [theory, classes]);
   
+  // Fix the available lessons logic
   const availableLessons = useMemo(() => {
     if (!activeClassId) return [];
     
     const lessonIds = [...new Set(
       theory
-        .filter(item => item.classId === activeClassId && item.lessonId)
-        .map(item => item.lessonId)
+        .filter(item => {
+          const itemClassId = item.class_id || item.classId;
+          return itemClassId && itemClassId.toString() === activeClassId.toString();
+        })
+        .map(item => item.lesson_id || item.lessonId)
+        .filter(Boolean)
     )];
     
     return lessonIds.map(lessonId => {
-      const lessonInfo = lessons.find(l => normalizeId(l.id) === lessonId);
+      const lessonInfo = lessons.find(l => 
+        normalizeId(l.id) === lessonId.toString() ||
+        l.id.toString() === lessonId.toString() ||
+        l.lesson_id === lessonId.toString()
+      );
       const name = lessonInfo?.title || lessonInfo?.name || `Урок ${lessonId}`;
-      return { id: lessonId, name };
+      return { id: lessonId.toString(), name };
     }).sort((a, b) => a.name.localeCompare(b.name));
   }, [theory, lessons, activeClassId]);
 
   const handleClassChange = (classId) => {
+    console.log('Class changed to:', classId);
     setActiveClassId(classId);
-    setActiveLessonId(null);
+    setActiveLessonId(''); // Reset lesson selection
     setSelectedTheoryItem(null);
   };
   
   const handleLessonChange = (lessonId) => {
+    console.log('Lesson changed to:', lessonId);
     setActiveLessonId(lessonId);
     setSelectedTheoryItem(null);
   };
@@ -125,31 +171,45 @@ export default function TheoryScreen(props) {
     setSearchQuery(e.target.value);
   };
 
-  // Handle theory item click
+  // Handle theory item click - fix the lesson finding logic
   const handleTheoryClick = useCallback((theoryItem) => {
+    console.log('Theory item clicked:', theoryItem);
+    
     // Find the corresponding lesson for this theory item
-    const lesson = lessons.find(l => normalizeId(l.id) === theoryItem.lessonId);
+    const lesson = lessons.find(l => {
+      const lessonId = l.id || l.lesson_id;
+      const theoryLessonId = theoryItem.lesson_id || theoryItem.lessonId;
+      return lessonId && theoryLessonId && lessonId.toString() === theoryLessonId.toString();
+    });
+    
+    console.log('Found lesson:', lesson);
     setSelectedTheoryItem(theoryItem);
     setSelectedLesson(lesson);
     setModalOpen(true);
   }, [lessons]);
 
-  // Handle start test
+  // Handle start test - fix the question filtering logic
   const handleStartTest = useCallback((lesson) => {
     if (lesson && onStartQuiz) {
+      console.log('Starting test for lesson:', lesson);
+      
       // Find questions for this lesson
       const lessonQuestions = questions.filter(q => {
         const questionLessonId = q.lesson_id || q.lessonId;
         const lessonId = lesson.id || lesson.lesson_id;
-        return normalizeId(questionLessonId) === normalizeId(lessonId);
+        return questionLessonId && lessonId && 
+               normalizeId(questionLessonId) === normalizeId(lessonId);
       });
+      
+      console.log('Found questions:', lessonQuestions.length);
       
       if (lessonQuestions.length > 0) {
         console.log('Starting test for lesson:', lesson, 'with', lessonQuestions.length, 'questions');
         onStartQuiz(lesson, lessonQuestions);
       } else {
         console.warn('No questions found for lesson:', lesson);
-        // You could show a toast or alert here
+        // Show user-friendly message
+        alert('Няма налични въпроси за този урок. Моля, опитайте с друг урок.');
       }
     }
   }, [onStartQuiz, questions]);
@@ -257,7 +317,7 @@ export default function TheoryScreen(props) {
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700">Урок</label>
                 <select
-                  value={activeLessonId}
+                  value={activeLessonId || 'all'}
                   onChange={handleLessonSelectChange}
                   className="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 >
@@ -296,6 +356,20 @@ export default function TheoryScreen(props) {
                 : 'Няма налична теория за избрания филтър.'
               }
             </p>
+            
+            {/* Debug information */}
+            <div className="mt-4 p-4 bg-slate-50 rounded-lg text-left text-sm">
+              <p className="font-medium mb-2">Debug информация:</p>
+              <p>• Активен клас: {activeClassId || 'Не е избран'}</p>
+              <p>• Активен урок: {activeLessonId || 'Не е избран'}</p>
+              <p>• Търсене: "{searchQuery}"</p>
+              <p>• Общо теория: {theory.length}</p>
+              <p>• Накрани класове: {[...new Set(theory.map(item => item.class_id || item.classId))].filter(Boolean).sort().join(', ')}</p>
+              {activeClassId && (
+                <p>• Уроци за клас {activeClassId}: {availableLessons.map(l => l.name).join(', ')}</p>
+              )}
+            </div>
+            
             {activeClassId && (
               <div className="mt-4">
                 <button
@@ -308,7 +382,7 @@ export default function TheoryScreen(props) {
             )}
             {theory.length > 0 && (
               <div className="mt-4 text-sm text-slate-500">
-                <p>Налична теория за класове: {[...new Set(theory.map(item => item.classId))].sort().join(', ')}</p>
+                <p>Налична теория за класове: {[...new Set(theory.map(item => item.class_id || item.classId))].filter(Boolean).sort().join(', ')}</p>
               </div>
             )}
           </div>
@@ -336,16 +410,22 @@ export default function TheoryScreen(props) {
                           {item.title}
                         </h3>
                         <div className="flex items-center gap-2">
-                          {item.classId && (
+                          {item.class_id || item.classId ? (
                             <span className="bg-slate-100 text-slate-700 px-2 py-1 rounded-full text-xs font-medium">
-                              Клас {item.classId}
+                              {(() => {
+                                const classInfo = availableClasses.find(c => c.id === (item.class_id || item.classId)?.toString());
+                                return classInfo ? classInfo.name : `Клас ${item.class_id || item.classId}`;
+                              })()}
                             </span>
-                          )}
-                          {item.lessonId && (
+                          ) : null}
+                          {item.lesson_id || item.lessonId ? (
                             <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-medium">
-                              Урок {item.lessonId}
+                              {(() => {
+                                const lessonInfo = availableLessons.find(l => l.id === (item.lesson_id || item.lessonId)?.toString());
+                                return lessonInfo ? lessonInfo.name : `Урок ${item.lesson_id || item.lessonId}`;
+                              })()}
                             </span>
-                          )}
+                          ) : null}
                         </div>
                       </div>
                       <div className="ml-4 text-slate-400">
