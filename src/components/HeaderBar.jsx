@@ -7,9 +7,8 @@ export default function HeaderBar({ title, profile, onHome, onLogout, onOpenSett
         <button type="button" className="btn" onClick={onHome}>🏠</button>
         <h1 className="text-lg font-semibold">{title}</h1>
       </div>
-      <div className="flex items-center gap-2 text-sm text-slate-600">
-        <span>👤 {profile?.name || "Гост"} · {profile?.classId ? `Клас: ${profile.classId}` : "Без клас"}</span>
-        <button type="button" className="btn" onClick={onLogout}>Смени профил</button>
+      <div className="flex items-center gap-2 text-sm text-slate-600">        
+        <button type="button" className="btn" onClick={onLogout}>👤</button>
         <button type="button" className="btn" onClick={onOpenSettings} title="Настройки">⚙️</button>
       </div>
     </div>
