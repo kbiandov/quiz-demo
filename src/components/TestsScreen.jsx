@@ -65,14 +65,12 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
     const lessonId = lesson.id || lesson.lesson_id;
     const selectedCount = questionCounts[lessonId] || allQuestions.length;
     
-    const limitedQs = (() => {
-      if (selectedCount < allQuestions.length) {
-        const shuffleFunction = () => Math.random() - 0.5;
-        const shuffled = [...allQuestions].sort(shuffleFunction);
-        return shuffled.slice(0, selectedCount);
-      }
-      return allQuestions;
-    })();
+    let limitedQs = allQuestions;
+    if (selectedCount < allQuestions.length) {
+      const shuffleFunction = () => Math.random() - 0.5;
+      const shuffled = [...allQuestions].sort(shuffleFunction);
+      limitedQs = shuffled.slice(0, selectedCount);
+    }
     
     onStartQuiz(lesson, limitedQs);
   };
