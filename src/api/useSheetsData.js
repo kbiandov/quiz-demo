@@ -3,7 +3,7 @@ import { fetchCSV } from "./fetchCsv";
 import { SHEETS } from "../constants";
 
 export function useSheetsData() {
-  const [data, setData] = useState({ classes: [], subjects: [], lessons: [], questions: [] });
+  const [data, setData] = useState({ classes: [], subjects: [], lessons: [], questions: [], theory: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -13,13 +13,14 @@ export function useSheetsData() {
       setLoading(true);
       setError(null);
       try {
-        const [classes, subjects, lessons, questions] = await Promise.all([
+        const [classes, subjects, lessons, questions, theory] = await Promise.all([
           fetchCSV(SHEETS.classes),
           fetchCSV(SHEETS.subjects),
           fetchCSV(SHEETS.lessons),
           fetchCSV(SHEETS.questions),
+          fetchCSV(SHEETS.theory),
         ]);
-        if (!cancelled) setData({ classes, subjects, lessons, questions });
+        if (!cancelled) setData({ classes, subjects, lessons, questions, theory });
       } catch (e) {
         if (!cancelled) setError(e?.message || "Грешка при зареждане");
       } finally {

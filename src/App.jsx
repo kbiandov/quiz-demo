@@ -14,7 +14,7 @@ import { STORAGE_KEYS } from "./constants";
 import { useSheetsData } from "./api/useSheetsData";
 
 export default function MathApp(){
-  const { classes, subjects, lessons, questions, loading, error } = useSheetsData();
+  const { classes, subjects, lessons, questions, theory, loading, error } = useSheetsData();
   const [profile,setProfile] = useLocalStorage(STORAGE_KEYS.profile, null);
   const [results,setResults] = useLocalStorage(STORAGE_KEYS.results, []);
   const [route,setRoute] = useState("home");
@@ -40,7 +40,7 @@ export default function MathApp(){
   return (<div className="min-h-screen">
     <HeaderBar title={routeTitle(route)} profile={profile} onHome={()=>setRoute("home")} onLogout={resetProfile} onOpenSettings={()=>setSettingsOpen(true)} />
     {route==="home" && <HomeScreen onGo={setRoute} profile={profile} />}
-    {route==="theory" && <TheoryScreen />}
+    {route==="theory" && <TheoryScreen profile={profile} theory={theory} classes={classes} lessons={lessons} />}
     {route==="tests" && (<TestsScreen profile={profile} lessons={lessons} classes={classes} questions={questions} onStartQuiz={(lesson,qs)=> setActiveQuiz({ lesson, questions: qs })} />)}
     {route==="results" && (<ResultsScreen results={results} classes={classes} lessons={lessons} canRestart={!!lastQuiz} onRestart={()=> lastQuiz && setActiveQuiz({ lesson: lastQuiz.lesson, questions: lastQuiz.questions })} />)}
     {route==="stats" && <StatsScreen results={results} />}
