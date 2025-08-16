@@ -14,7 +14,17 @@ import { STORAGE_KEYS } from "./constants";
 import { useSheetsData } from "./api/useSheetsData";
 
 export default function MathApp(){
-  const { classes, subjects, lessons, questions, theory, loading, error } = useSheetsData();
+  const { 
+    classes, 
+    subjects, 
+    lessons, 
+    questions, 
+    theory, 
+    questionsByLessonId,
+    loading, 
+    error 
+  } = useSheetsData();
+  
   const [profile,setProfile] = useLocalStorage(STORAGE_KEYS.profile, null);
   const [results,setResults] = useLocalStorage(STORAGE_KEYS.results, []);
   const [route,setRoute] = useState("home");
@@ -26,19 +36,11 @@ export default function MathApp(){
   useEffect(()=>{ if(!profile && !loading) setRoute("onboarding"); },[profile,loading]);
 
   function handleFinishQuiz(summary){ 
-    console.log('Quiz finished, summary received:', summary);
-    console.log('Summary keys:', Object.keys(summary));
-    console.log('Summary qlist:', summary.qlist);
-    console.log('Summary questions:', summary.questions);
-    
     // Store the complete result including questions for retaking
     const resultWithQuestions = {
       ...summary,
       questions: summary.qlist || summary.questions || [] // Use qlist if available, fallback to questions
     };
-    
-    console.log('Result with questions to be saved:', resultWithQuestions);
-    console.log('Questions field in result:', resultWithQuestions.questions);
     
     setResults([resultWithQuestions, ...results]); 
     
@@ -47,11 +49,6 @@ export default function MathApp(){
       lesson: summary.lesson, 
       questions: resultWithQuestions.questions 
     }); 
-    
-    console.log('Last quiz stored:', { 
-      lesson: summary.lesson, 
-      questions: resultWithQuestions.questions 
-    });
     
     setActiveQuiz(null); 
     setRoute("results"); 
@@ -63,18 +60,19 @@ export default function MathApp(){
       setActiveQuiz({ lesson, questions });
       setRoute("quiz");
     } else {
-      console.warn('No questions provided for retake, falling back to last quiz');
+      console.warn('[MathApp] No questions provided for retake, falling back to last quiz');
       // Fallback to last quiz if no questions provided
       if (lastQuiz && lastQuiz.questions && lastQuiz.questions.length > 0) {
         setActiveQuiz({ lesson: lastQuiz.lesson, questions: lastQuiz.questions });
         setRoute("quiz");
       } else {
-        console.error('Cannot retake test: no questions available');
+        console.error('[MathApp] Cannot retake test: no questions available');
         // Redirect to tests screen to select a new test
         setRoute("tests");
       }
     }
   }
+  
   function resetProfile(){ setProfile(null); setRoute("onboarding"); }
 
   const handleTheoryStartQuiz = (lesson, questions) => setActiveQuiz({ lesson, questions });
@@ -107,7 +105,15 @@ export default function MathApp(){
     {route==="home" && <HomeScreen onGo={setRoute} profile={profile} />}
     {route==="theory" && <TheoryScreen profile={profile} theory={theory} classes={classes} lessons={lessons} questions={questions} onStartQuiz={handleTheoryStartQuiz} />}
     {route==="tests" && (<TestsScreen profile={profile} lessons={lessons} classes={classes} questions={questions} onStartQuiz={handleTestsStartQuiz} />)}
-    {route==="results" && (<ResultsScreen results={results} classes={classes} lessons={lessons} questions={questions} canRestart={!!lastQuiz} onRestart={handleResultsRestart} />)}
+    {route==="results" && (<ResultsScreen 
+      results={results} 
+      classes={classes} 
+      lessons={lessons} 
+      questions={questions}
+      questionsByLessonId={questionsByLessonId}
+      canRestart={!!lastQuiz} 
+      onRestart={handleResultsRestart} 
+    />)}
     {route==="stats" && <StatsScreen results={results} />}
     {settingsOpen && (
       <SettingsModal 

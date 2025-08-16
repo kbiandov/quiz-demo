@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 
 export default function ResultReview({ result, onRetakeTest, onRetry }) {
   // Early return with null check
@@ -16,22 +16,6 @@ export default function ResultReview({ result, onRetakeTest, onRetry }) {
   // Check if we have questions data - declared before any usage
   const hasQuestions = Array.isArray(questions) && questions.length > 0;
   
-  // Debug logging for troubleshooting
-  console.log('ResultReview render:', { 
-    result, 
-    questions: result.questions, 
-    qlist: result.qlist,
-    questionsType: typeof result.questions,
-    questionsLength: result.questions?.length,
-    qlistLength: result.qlist?.length,
-    answers,
-    hasQuestions 
-  });
-
-  // Try to get questions from multiple sources
-  const availableQuestions = questions || result.qlist || [];
-  const hasAvailableQuestions = Array.isArray(availableQuestions) && availableQuestions.length > 0;
-
   // Safe date formatting
   const date = at ? new Date(at).toLocaleDateString('bg-BG', {
     year: 'numeric',
@@ -162,10 +146,10 @@ export default function ResultReview({ result, onRetakeTest, onRetry }) {
       {/* Questions Review */}
       <div className="space-y-6">
         <h4 className="text-xl font-semibold text-slate-800 mb-6 border-b border-slate-200 pb-2">
-          Преглед на въпросите ({hasAvailableQuestions ? availableQuestions.length : 0})
+          Преглед на въпросите ({hasQuestions ? questions.length : 0})
         </h4>
         
-        {!hasAvailableQuestions ? (
+        {!hasQuestions ? (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
             <div className="text-yellow-800">
               <p className="font-medium mb-2 text-lg">Въпросите не са налични за преглед</p>
@@ -180,7 +164,7 @@ export default function ResultReview({ result, onRetakeTest, onRetry }) {
           </div>
         ) : (
           <ul className="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
-            {availableQuestions.map((question, index) => {
+            {questions.map((question, index) => {
               const questionId = question.id || `q${index}`;
               const options = getQuestionOptions(question);
               const selectedAnswer = answers[questionId];
@@ -280,6 +264,7 @@ export default function ResultReview({ result, onRetakeTest, onRetry }) {
       {/* Footer with Actions */}
       <div className="mt-8 pt-6 border-t border-slate-200 flex justify-center gap-4">
         <button
+          type="button"
           onClick={handleRetake}
           className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
         >

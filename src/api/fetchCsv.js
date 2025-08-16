@@ -1,8 +1,6 @@
 import Papa from "papaparse";
 
 export async function fetchCSV(url) {
-  console.log('fetchCSV called with URL:', url);
-  
   return new Promise((resolve, reject) => {
     Papa.parse(url, {
       download: true,
@@ -10,27 +8,19 @@ export async function fetchCSV(url) {
       skipEmptyLines: true,
       transformHeader: (header) => header.trim(), // Trim whitespace from headers
       complete: (res) => {
-        console.log('Papa.parse complete for URL:', url);
-        console.log('Result:', res);
-        console.log('Data length:', res.data?.length);
-        console.log('Errors:', res.errors);
-        console.log('Meta:', res.meta);
-        console.log('First row:', res.data?.[0]);
-        console.log('Column names:', res.meta?.fields);
-        
         if (res.errors && res.errors.length > 0) {
-          console.error('CSV parsing errors:', res.errors);
-          reject(res.errors[0]);
+          console.error('[fetchCSV] Parsing errors for URL:', url, res.errors);
+          reject(new Error(`CSV parsing failed: ${res.errors[0].message}`));
         } else if (!res.data || res.data.length === 0) {
-          console.error('CSV returned no data');
+          console.error('[fetchCSV] No data returned from URL:', url);
           reject(new Error('CSV returned no data'));
         } else {
           resolve(res.data);
         }
       },
       error: (err) => {
-        console.error('Papa.parse error for URL:', url, err);
-        reject(err);
+        console.error('[fetchCSV] Network error for URL:', url, err);
+        reject(new Error(`Network error: ${err.message}`));
       },
     });
   });

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import Modal from "./Modal";
 import ResultReview from "./ResultReview";
 
@@ -7,74 +7,80 @@ export default function ResultsScreen(props) {
     results = [], 
     classes = [], 
     lessons = [], 
+    questions = [],
+    questionsByLessonId = {},
     canRestart = false, 
     onRestart 
   } = props;
+  
   const [activeResult, setActiveResult] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Debug logging to see what data we have
-  console.log('ResultsScreen render:', { 
-    resultsCount: results.length,
-    results: results,
-    firstResult: results[0],
-    firstResultKeys: results[0] ? Object.keys(results[0]) : [],
-    firstResultQuestions: results[0]?.questions,
-    firstResultQlist: results[0]?.qlist
-  });
+  // Memoized data processing
+  const processedResults = useMemo(() => {
+    return results.map(result => ({
+      ...result,
+      // Ensure questions are always available
+      questions: result.questions || result.qlist || [],
+      // Normalize lesson data
+      lesson: {
+        id: result.lesson?.id || result.lesson?.lesson_id || '',
+        title: result.lesson?.title || result.lesson?.name || 'Урок',
+        name: result.lesson?.name || result.lesson?.title || 'Урок'
+      }
+    }));
+  }, [results]);
 
-  const handleResultClick = (result) => {
-    console.log('Result clicked:', result);
-    console.log('Result questions:', result.questions);
-    console.log('Result qlist:', result.qlist);
+  const handleResultClick = useCallback((result) => {
     setActiveResult(result);
     setIsModalOpen(true);
-  };
+  }, []);
 
-  const handleResultRowClick = (result) => handleResultClick(result);
-
-  const handleCloseModal = () => {
+  const handleCloseModal = useCallback(() => {
     setIsModalOpen(false);
     setActiveResult(null);
-  };
+  }, []);
 
-  const handleRetakeTest = () => {
-    if (activeResult && onRestart) {
-      handleCloseModal();
-      
-      // Try to get questions from the result data
-      const resultQuestions = activeResult.questions || activeResult.qlist || [];
-      
-      if (resultQuestions.length > 0) {
-        console.log('Retaking test with questions:', resultQuestions.length);
-        onRestart(activeResult.lesson, resultQuestions);
-      } else {
-        console.warn('No questions found in result data for retake, trying to find questions from lesson');
-        
-        // Try to find questions from the lesson ID
-        const lessonId = activeResult.lesson?.id || activeResult.lesson?.lesson_id;
-        if (lessonId && props.questions) {
-          const lessonQuestions = props.questions.filter(q => 
-            q.lesson_id === lessonId || q.lessonId === lessonId || q.lesson === lessonId
-          );
-          
-          if (lessonQuestions.length > 0) {
-            console.log('Found questions from lesson data:', lessonQuestions.length);
-            onRestart(activeResult.lesson, lessonQuestions);
-          } else {
-            console.error('No questions found for lesson:', lessonId);
-            // Show user-friendly error message
-            alert('Неуспешно зареждане на въпросите. Моля, опитайте отново или изберете друг тест.');
-          }
-        } else {
-          console.error('Cannot retake test: no lesson ID or questions available');
-          alert('Неуспешно зареждане на въпросите. Моля, опитайте отново или изберете друг тест.');
-        }
-      }
+  // Implement proper retake functionality
+  const handleRetakeTest = useCallback(() => {
+    if (!activeResult || !onRestart) return;
+
+    const lessonId = activeResult.lesson?.id || activeResult.lesson?.lesson_id;
+    
+    if (!lessonId) {
+      console.error('[ResultsScreen] No lesson ID found for retake');
+      return;
     }
-  };
 
-  if (!results || results.length === 0) {
+    // Try to get questions from the result first
+    let retakeQuestions = activeResult.questions || activeResult.qlist || [];
+    
+    // If no questions in result, try to get from questionsByLessonId
+    if (retakeQuestions.length === 0 && questionsByLessonId[lessonId]) {
+      retakeQuestions = questionsByLessonId[lessonId];
+    }
+    
+    // If still no questions, try to filter from questions array
+    if (retakeQuestions.length === 0 && questions.length > 0) {
+      retakeQuestions = questions.filter(q => {
+        const questionLessonId = q.lesson_id || q.lessonId;
+        return questionLessonId && questionLessonId.toString() === lessonId.toString();
+      });
+    }
+
+    if (retakeQuestions.length > 0) {
+      console.log(`[ResultsScreen] Retaking test for lesson ${lessonId} with ${retakeQuestions.length} questions`);
+      handleCloseModal();
+      onRestart(activeResult.lesson, retakeQuestions);
+    } else {
+      console.error(`[ResultsScreen] No questions found for lesson ${lessonId}`);
+      // Show user-friendly error
+      alert('Неуспешно зареждане на въпросите за този урок. Моля, опитайте отново или изберете друг тест.');
+    }
+  }, [activeResult, onRestart, questionsByLessonId, questions, handleCloseModal]);
+
+  // Early return for empty results
+  if (!processedResults || processedResults.length === 0) {
     return (
       <div className="min-h-screen bg-slate-50">
         <div className="max-w-4xl mx-auto p-4 sm:p-6">
@@ -86,6 +92,7 @@ export default function ResultsScreen(props) {
             </p>
             {canRestart && (
               <button 
+                type="button"
                 onClick={onRestart}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
               >
@@ -103,26 +110,9 @@ export default function ResultsScreen(props) {
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
         <h1 className="text-3xl font-bold text-slate-800 mb-8">Резултати</h1>
         
-        {/* Debug: Clear Results Button */}
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-sm text-red-800 mb-2">
-            <strong>Debug:</strong> Clear results to test with fresh data
-          </p>
-          <button
-            onClick={() => {
-              localStorage.removeItem('quiz-results');
-              window.location.reload();
-            }}
-            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded text-sm"
-          >
-            Clear All Results
-          </button>
-        </div>
-        
         {/* Results List */}
         <div className="space-y-4">
-          {results.map(result => {
-            const handleClick = () => handleResultClick(result);
+          {processedResults.map(result => {
             const percentage = Math.round((result.correct / result.total) * 100);
             const date = new Date(result.at).toLocaleDateString('bg-BG', {
               year: 'numeric',
@@ -136,7 +126,7 @@ export default function ResultsScreen(props) {
               <div
                 key={result.at}
                 className="bg-white rounded-lg border p-4 hover:bg-slate-50 cursor-pointer transition-colors"
-                onClick={handleClick}
+                onClick={() => handleResultClick(result)}
               >
                 <div className="p-6">
                   <div className="flex items-center justify-between">
@@ -151,6 +141,11 @@ export default function ResultsScreen(props) {
                         <span className="text-sm text-slate-500">
                           {result.timeLimitMin ? `Време: ${result.timeLimitMin} мин` : 'Без време'}
                         </span>
+                        {result.questions && result.questions.length > 0 && (
+                          <span className="text-sm text-slate-500">
+                            · {result.questions.length} въпроса
+                          </span>
+                        )}
                       </div>
                     </div>
                     
@@ -189,6 +184,7 @@ export default function ResultsScreen(props) {
         {canRestart && (
           <div className="mt-8 text-center">
             <button
+              type="button"
               onClick={onRestart}
               className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
             >
@@ -208,6 +204,7 @@ export default function ResultsScreen(props) {
         <ResultReview
           result={activeResult}
           onRetakeTest={handleRetakeTest}
+          onRetry={handleRetakeTest}
         />
       </Modal>
     </div>
