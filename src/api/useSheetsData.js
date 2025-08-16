@@ -13,20 +13,27 @@ export function useSheetsData() {
       setLoading(true);
       setError(null);
       try {
+        console.log('Starting to fetch theory data from:', SHEETS.theory);
+        
         const [classes, subjects, lessons, questions, theory] = await Promise.all([
           fetchCSV(SHEETS.classes),
           fetchCSV(SHEETS.subjects),
           fetchCSV(SHEETS.lessons),
           fetchCSV(SHEETS.questions),
-          fetchCSV(SHEETS.theory).catch(e => {
-            console.warn('Theory data failed to load:', e);
-            return []; // Return empty array for theory if it fails
-          }),
+          fetchCSV(SHEETS.theory),
         ]);
+        
+        console.log('Theory data loaded:', theory);
+        console.log('Theory data length:', theory?.length);
+        console.log('Theory data type:', typeof theory);
+        console.log('Theory data structure:', theory?.[0]);
+        console.log('All data keys:', Object.keys({ classes, subjects, lessons, questions, theory }));
+        
         if (!cancelled) setData({ classes, subjects, lessons, questions, theory });
       } catch (e) {
         if (!cancelled) {
           console.error('Error loading sheets data:', e);
+          console.error('Full error object:', e);
           setError(e?.message || "Грешка при зареждане на данните");
         }
       } finally {

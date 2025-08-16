@@ -16,6 +16,10 @@ function useURLParams() {
 }
 
 export default function TheoryScreen({ profile, theory = [], classes = [], lessons = [] }) {
+  console.log('TheoryScreen render - theory data:', theory);
+  console.log('TheoryScreen render - theory length:', theory?.length);
+  console.log('TheoryScreen render - profile:', profile);
+  
   const [searchParams, setSearchParams] = useURLParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
