@@ -521,3 +521,4 @@ New contributors can:
 ---
 
 Thank you for contributing to the Math Quiz Application! Your contributions help make the app better for everyone. If you have any questions, don't hesitate to ask in issues or discussions.
+

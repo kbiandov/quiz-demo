@@ -596,3 +596,4 @@ test('calls onRetakeTest when retake button clicked', () => {
 ---
 
 This component documentation provides a comprehensive guide for developers working with the Math Quiz Application components, ensuring consistent usage and proper integration.
+
