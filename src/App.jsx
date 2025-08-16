@@ -46,6 +46,7 @@ export default function MathApp(){
   const handleOpenSettings = () => setSettingsOpen(true);
   const handleOnboardingDone = (p) => { setProfile(p); setRoute("home"); };
   const handleReload = () => location.reload();
+  const handleCloseSettings = () => setSettingsOpen(false);
   
   if (route==="onboarding" || !profile) return <Onboarding classes={classes} onDone={handleOnboardingDone} />;
   if (activeQuiz) return (<div className="min-h-screen bg-slate-50">
@@ -72,7 +73,7 @@ export default function MathApp(){
     {settingsOpen && (
       <SettingsModal 
         isOpen={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
+        onClose={handleCloseSettings}
         settings={settings}
         onSave={setSettings}
       />

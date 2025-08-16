@@ -35,10 +35,11 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
   }, [lessons]);
   
   const classList = useMemo(() => {
-    return classes.map(c => ({
-      id: normalizeId(c.id) || c.name,
-      name: c.name || c.title || c.id
-    }));
+    return classes.map(c => {
+      const id = normalizeId(c.id) || c.name;
+      const name = c.name || c.title || c.id;
+      return { id, name };
+    });
   }, [classes]);
   const currentClassId = profile?.classId;
   const currentLessons = lessonsByClass[currentClassId] || [];
@@ -114,9 +115,9 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
               >
                 {qs.length <= 5 ? (
                   // If 5 or fewer questions, show individual options
-                  Array.from({ length: qs.length }, (_, i) => i + 1).map(count => (
-                    <option key={count} value={count}>{count}</option>
-                  ))
+                  Array.from({ length: qs.length }, (_, i) => i + 1).map(count => {
+                    return <option key={count} value={count}>{count}</option>;
+                  })
                 ) : (
                   // If more than 5 questions, show common options + "All"
                   <>
@@ -143,17 +144,25 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
         <div>
           <h3 className="text-lg font-semibold mb-3">{`Уроци за ${classList.find(c=>c.id===currentClassId)?.name || "избрания клас"}`}</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {currentLessons.map(l => renderLessonCard(l, true))}
+            {currentLessons.map(l => {
+              return renderLessonCard(l, true);
+            })}
           </div>
         </div>
       )},
       {value:'by-class', label:'По класове', content:(
-        <div className="space-y-4">{classList.map(cls=>(<div key={cls.id}>
-          <div className="text-sm font-semibold mb-2">{cls.name}</div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {(lessonsByClass[cls.id]||[]).map(l => renderLessonCard(l))}
-          </div>
-        </div>))}</div>
+        <div className="space-y-4">{classList.map(cls => {
+          return (
+            <div key={cls.id}>
+              <div className="text-sm font-semibold mb-2">{cls.name}</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {(lessonsByClass[cls.id]||[]).map(l => {
+                  return renderLessonCard(l);
+                })}
+              </div>
+            </div>
+          );
+        })}</div>
       )}
     ]}/>
   </div>);

@@ -99,7 +99,10 @@ export function getResultStatistics() {
   const totalCorrect = results.reduce((sum, r) => sum + (r.correct || 0), 0);
   const averageScore = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
   
-  const scores = results.map(r => r.total > 0 ? Math.round((r.correct / r.total) * 100) : 0);
+  const scores = results.map(r => {
+    const score = r.total > 0 ? Math.round((r.correct / r.total) * 100) : 0;
+    return score;
+  });
   const bestScore = Math.max(...scores);
   const worstScore = Math.min(...scores);
 

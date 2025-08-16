@@ -24,14 +24,19 @@ export function useSheetsData() {
         ]);
         
         // Transform theory data to match expected property names
-        const transformedTheory = theory.map(item => ({
-          id: item.id,
-          classId: item.class_id ? Number(item.class_id) : undefined,
-          lessonId: item.lesson_id ? String(item.lesson_id) : undefined,
-          title: item.title,
-          content: item.content,
-          image: item.image
-        }));
+        const transformedTheory = theory.map(item => {
+          const classId = item.class_id ? Number(item.class_id) : undefined;
+          const lessonId = item.lesson_id ? String(item.lesson_id) : undefined;
+          
+          return {
+            id: item.id,
+            classId,
+            lessonId,
+            title: item.title,
+            content: item.content,
+            image: item.image
+          };
+        });
         
         console.log('Theory data loaded:', theory);
         console.log('Transformed theory data:', transformedTheory);

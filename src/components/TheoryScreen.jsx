@@ -117,10 +117,8 @@ export default function TheoryScreen({ profile, theory = [], classes = [], lesso
     const classIds = [...new Set(theory.map(item => item.classId).filter(Boolean))];
     return classIds.map(classId => {
       const classInfo = classes.find(c => normalizeId(c.id) === classId.toString() || c.id === classId);
-      return {
-        id: classId,
-        name: classInfo?.name || classInfo?.title || `Клас ${classId}`
-      };
+      const name = classInfo?.name || classInfo?.title || `Клас ${classId}`;
+      return { id: classId, name };
     }).sort((a, b) => a.id - b.id);
   }, [theory, classes]);
 
@@ -135,10 +133,8 @@ export default function TheoryScreen({ profile, theory = [], classes = [], lesso
     
     return lessonIds.map(lessonId => {
       const lessonInfo = lessons.find(l => normalizeId(l.id) === lessonId);
-      return {
-        id: lessonId,
-        name: lessonInfo?.title || lessonInfo?.name || `Урок ${lessonId}`
-      };
+      const name = lessonInfo?.title || lessonInfo?.name || `Урок ${lessonId}`;
+      return { id: lessonId, name };
     }).sort((a, b) => a.name.localeCompare(b.name));
   }, [theory, lessons, activeClassId]);
 
@@ -192,6 +188,7 @@ export default function TheoryScreen({ profile, theory = [], classes = [], lesso
   const handleTheoryItemClick = (item) => handleTheoryClick(item);
   const handleClassSelectChange = (e) => handleClassChange(e.target.value);
   const handleLessonSelectChange = (e) => handleLessonChange(e.target.value);
+  const handleCloseModal = () => setModalOpen(false);
 
   // If no profile, show prompt
   if (!profile) {
@@ -396,7 +393,7 @@ export default function TheoryScreen({ profile, theory = [], classes = [], lesso
       {/* Theory Modal */}
       <TheoryModal
         isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={handleCloseModal}
         theoryItem={selectedTheoryItem}
         lesson={selectedLesson}
         onStartTest={handleStartTest}

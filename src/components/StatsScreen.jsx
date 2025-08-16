@@ -86,28 +86,35 @@ export default function StatsScreen({ results = [] }) {
               <h2 className="text-xl font-semibold text-slate-800">Последни резултати</h2>
             </div>
             <div className="divide-y divide-slate-200">
-              {results.slice(0, 10).map((result, index) => (
-                <div key={index} className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold text-slate-800">
-                        {result.lesson?.title || result.lesson?.name || 'Урок'}
-                      </h3>
-                      <p className="text-sm text-slate-600">
-                        {new Date(result.at).toLocaleDateString('bg-BG')} · {result.correct}/{result.total} правилни
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-lg font-bold text-slate-800">
-                        {Math.round((result.correct / result.total) * 100)}%
+              {results.slice(0, 10).map((result, index) => {
+                const lessonTitle = result.lesson?.title || result.lesson?.name || 'Урок';
+                const date = new Date(result.at).toLocaleDateString('bg-BG');
+                const percentage = Math.round((result.correct / result.total) * 100);
+                const points = result.correct * 10;
+                
+                return (
+                  <div key={index} className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-semibold text-slate-800">
+                          {lessonTitle}
+                        </h3>
+                        <p className="text-sm text-slate-600">
+                          {date} · {result.correct}/{result.total} правилни
+                        </p>
                       </div>
-                      <div className="text-sm text-slate-500">
-                        +{result.correct * 10} точки
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-slate-800">
+                          {percentage}%
+                        </div>
+                        <div className="text-sm text-slate-500">
+                          +{points} точки
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         ) : (

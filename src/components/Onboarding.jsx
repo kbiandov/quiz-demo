@@ -29,11 +29,16 @@ export default function Onboarding({ classes, onDone }){
             onChange={handleClassChange}
           >
             <option value="">Избери клас</option>
-            {classes.map((c) => (
-              <option key={normalizeId(c.id) || c.name} value={normalizeId(c.id) || c.name}>
-                {c.name || c.title || c.class || c.id}
-              </option>
-            ))}
+            {classes.map((c) => {
+              const key = normalizeId(c.id) || c.name;
+              const value = normalizeId(c.id) || c.name;
+              const label = c.name || c.title || c.class || c.id;
+              return (
+                <option key={key} value={value}>
+                  {label}
+                </option>
+              );
+            })}
           </select>
         </div>
         <button 
