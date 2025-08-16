@@ -11,7 +11,8 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
   const timeoutRef = useRef(null);
   const [showConfirm,setShowConfirm] = useState(false);
   const [timeLeft, setTimeLeft] = useState(() => {
-    return (settings?.timeLimitMin || 0) * 60;
+    const timeLimit = settings?.timeLimitMin || 0;
+    return timeLimit * 60;
   });
   const [adLeft, setAdLeft] = useState(0);
   
@@ -21,7 +22,8 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
   const qlist = useMemo(() => {
     const base = [...questions];
     if (settings?.shuffleQuestions) {
-      base.sort(() => Math.random() - 0.5);
+      const shuffleFunction = () => Math.random() - 0.5;
+      base.sort(shuffleFunction);
     }
     return base.map(q => {
       const options = [
@@ -33,7 +35,10 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
       
       const correctKey = String(q.correct || q.correct_option || q.answer || '').toUpperCase();
       const correctText = { A: q.A, B: q.B, C: q.C, D: q.D }[correctKey];
-      const shuffled = settings?.shuffleOptions ? [...options].sort(() => Math.random() - 0.5) : options;
+      const shuffled = settings?.shuffleOptions ? (() => {
+        const shuffleFunction = () => Math.random() - 0.5;
+        return [...options].sort(shuffleFunction);
+      })() : options;
       const newCorrectKey = (shuffled.find(o => o.text === correctText) || {}).key || correctKey;
       
       return { ...q, __options: shuffled, __correctKey: newCorrectKey };
@@ -55,7 +60,10 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
       { key: 'D', text: current.D || current.d }
     ].filter(o => o.text != null && String(o.text).trim() !== '');
     
-    const shuffled = settings?.shuffleOptions ? [...opts].sort(() => Math.random() - 0.5) : opts;
+    const shuffled = settings?.shuffleOptions ? (() => {
+      const shuffleFunction = () => Math.random() - 0.5;
+      return [...opts].sort(shuffleFunction);
+    })() : opts;
     return shuffled;
   }, [current, settings?.shuffleOptions]);
 
@@ -257,14 +265,12 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
       {/* Question Progress Indicator */}
       <div className="flex justify-center mt-2">
         <div className="flex space-x-1">
-          {Array.from({ length: total }, (_, i) => {
+          {Array.from({ length: total }, (unused, i) => {
             const isAnswered = answers[qlist[i]?.id];
+            const isCurrent = i === index;
             const dotClasses = `w-3 h-3 rounded-full transition-all ${
-              i === index 
-                ? 'bg-blue-600 scale-125' 
-                : isAnswered 
-                  ? 'bg-green-500' 
-                  : 'bg-slate-300 hover:bg-slate-400'
+              isCurrent ? 'bg-blue-600 scale-125' : 
+              isAnswered ? 'bg-green-500' : 'bg-slate-300 hover:bg-slate-400'
             }`;
             
             const dotTitle = (() => {
@@ -274,7 +280,6 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
             })();
             
             const handleClick = () => handleDotClick(i);
-            
             return (
               <button
                 key={i}

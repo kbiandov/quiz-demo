@@ -4,7 +4,10 @@ export default function useLocalStorage(key, initialValue) {
   const [value, setValue] = useState(() => {
     try {
       const raw = localStorage.getItem(key);
-      return raw ? JSON.parse(raw) : initialValue;
+      if (raw) {
+        return JSON.parse(raw);
+      }
+      return initialValue;
     } catch {
       return initialValue;
     }

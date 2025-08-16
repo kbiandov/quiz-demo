@@ -39,20 +39,10 @@ export default function TheoryScreen(props) {
   
   // Local state
   const [activeClassId, setActiveClassId] = useState(() => {
-    // If URL has class, use it
-    if (urlClassId) return Number(urlClassId);
-    
-    // If profile has classId, check if theory exists for that class
-    if (profile?.classId) {
-      const profileClassId = Number(profile.classId);
-      // Check if there's theory data for the user's class
-      const hasTheoryForProfileClass = theory.some(item => item.classId === profileClassId);
-      if (hasTheoryForProfileClass) {
-        return profileClassId;
-      }
+    const profileClassId = profile?.classId;
+    if (profileClassId && theory.some(item => item.classId === Number(profileClassId))) {
+      return Number(profileClassId);
     }
-    
-    // Default to null (show all classes)
     return null;
   });
   const [activeLessonId, setActiveLessonId] = useState(urlLessonId || '');

@@ -57,13 +57,16 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
     const lessonId = lesson.id || lesson.lesson_id;
     const selectedCount = questionCounts[lessonId] || allQuestions.length;
     
-    if (selectedCount === 'all' || selectedCount >= allQuestions.length) {
-      onStartQuiz(lesson, allQuestions);
-    } else {
-      const shuffled = [...allQuestions].sort(() => Math.random() - 0.5);
-      const limitedQuestions = shuffled.slice(0, selectedCount);
-      onStartQuiz(lesson, limitedQuestions);
-    }
+    const limitedQs = (() => {
+      if (selectedCount < allQuestions.length) {
+        const shuffleFunction = () => Math.random() - 0.5;
+        const shuffled = [...allQuestions].sort(shuffleFunction);
+        return shuffled.slice(0, selectedCount);
+      }
+      return allQuestions;
+    })();
+    
+    onStartQuiz(lesson, limitedQs);
   };
   
   function renderLessonCard(lesson, isCurrentClass = false) {
@@ -114,8 +117,7 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
                 className="text-xs border border-slate-300 rounded px-2 py-1 bg-white"
               >
                 {qs.length <= 5 ? (
-                  // If 5 or fewer questions, show individual options
-                  Array.from({ length: qs.length }, (_, i) => i + 1).map(count => {
+                  Array.from({ length: qs.length }, (unused, i) => i + 1).map(count => {
                     return <option key={count} value={count}>{count}</option>;
                   })
                 ) : (
