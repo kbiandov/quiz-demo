@@ -26,15 +26,39 @@ export default function MathApp(){
   useEffect(()=>{ if(!profile && !loading) setRoute("onboarding"); },[profile,loading]);
 
   function handleFinishQuiz(summary){ 
-    setResults([summary,...results]); 
-    setLastQuiz({ lesson: summary.lesson, questions: summary.questions || [] }); 
+    // Store the complete result including questions for retaking
+    const resultWithQuestions = {
+      ...summary,
+      questions: summary.qlist || summary.questions || [] // Use qlist if available, fallback to questions
+    };
+    setResults([resultWithQuestions, ...results]); 
+    
+    // Store last quiz with questions for retaking
+    setLastQuiz({ 
+      lesson: summary.lesson, 
+      questions: resultWithQuestions.questions 
+    }); 
     setActiveQuiz(null); 
     setRoute("results"); 
   }
   
   function handleRetakeTest(lesson, questions) {
-    setActiveQuiz({ lesson, questions });
-    setRoute("quiz");
+    // Ensure questions is an array and has content
+    if (questions && Array.isArray(questions) && questions.length > 0) {
+      setActiveQuiz({ lesson, questions });
+      setRoute("quiz");
+    } else {
+      console.warn('No questions provided for retake, falling back to last quiz');
+      // Fallback to last quiz if no questions provided
+      if (lastQuiz && lastQuiz.questions && lastQuiz.questions.length > 0) {
+        setActiveQuiz({ lesson: lastQuiz.lesson, questions: lastQuiz.questions });
+        setRoute("quiz");
+      } else {
+        console.error('Cannot retake test: no questions available');
+        // Redirect to tests screen to select a new test
+        setRoute("tests");
+      }
+    }
   }
   function resetProfile(){ setProfile(null); setRoute("onboarding"); }
 

@@ -28,12 +28,35 @@ export default function ResultsScreen(props) {
   const handleRetakeTest = () => {
     if (activeResult && onRestart) {
       handleCloseModal();
-      // Use questions from the result data
-      const resultQuestions = activeResult.questions || [];
+      
+      // Try to get questions from the result data
+      const resultQuestions = activeResult.questions || activeResult.qlist || [];
+      
       if (resultQuestions.length > 0) {
+        console.log('Retaking test with questions:', resultQuestions.length);
         onRestart(activeResult.lesson, resultQuestions);
       } else {
-        console.warn('No questions found in result data for retake');
+        console.warn('No questions found in result data for retake, trying to find questions from lesson');
+        
+        // Try to find questions from the lesson ID
+        const lessonId = activeResult.lesson?.id || activeResult.lesson?.lesson_id;
+        if (lessonId && props.questions) {
+          const lessonQuestions = props.questions.filter(q => 
+            q.lesson_id === lessonId || q.lessonId === lessonId || q.lesson === lessonId
+          );
+          
+          if (lessonQuestions.length > 0) {
+            console.log('Found questions from lesson data:', lessonQuestions.length);
+            onRestart(activeResult.lesson, lessonQuestions);
+          } else {
+            console.error('No questions found for lesson:', lessonId);
+            // Show user-friendly error message
+            alert('Неуспешно зареждане на въпросите. Моля, опитайте отново или изберете друг тест.');
+          }
+        } else {
+          console.error('Cannot retake test: no lesson ID or questions available');
+          alert('Неуспешно зареждане на въпросите. Моля, опитайте отново или изберете друг тест.');
+        }
       }
     }
   };

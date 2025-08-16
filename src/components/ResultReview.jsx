@@ -16,6 +16,22 @@ export default function ResultReview({ result, onRetakeTest, onRetry }) {
   // Check if we have questions data - declared before any usage
   const hasQuestions = Array.isArray(questions) && questions.length > 0;
   
+  // Debug logging for troubleshooting
+  console.log('ResultReview render:', { 
+    result, 
+    questions: result.questions, 
+    qlist: result.qlist,
+    questionsType: typeof result.questions,
+    questionsLength: result.questions?.length,
+    qlistLength: result.qlist?.length,
+    answers,
+    hasQuestions 
+  });
+
+  // Try to get questions from multiple sources
+  const availableQuestions = questions || result.qlist || [];
+  const hasAvailableQuestions = Array.isArray(availableQuestions) && availableQuestions.length > 0;
+
   // Safe date formatting
   const date = at ? new Date(at).toLocaleDateString('bg-BG', {
     year: 'numeric',
@@ -146,19 +162,25 @@ export default function ResultReview({ result, onRetakeTest, onRetry }) {
       {/* Questions Review */}
       <div className="space-y-6">
         <h4 className="text-xl font-semibold text-slate-800 mb-6 border-b border-slate-200 pb-2">
-          Преглед на въпросите ({hasQuestions ? questions.length : 0})
+          Преглед на въпросите ({hasAvailableQuestions ? availableQuestions.length : 0})
         </h4>
         
-        {!hasQuestions ? (
+        {!hasAvailableQuestions ? (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
             <div className="text-yellow-800">
               <p className="font-medium mb-2 text-lg">Въпросите не са налични за преглед</p>
-              <p className="text-sm">Това може да се дължи на по-стара версия на приложението</p>
+              <p className="text-sm mb-4">Това може да се дължи на по-стара версия на приложението</p>
+              <div className="text-xs text-yellow-700 bg-yellow-100 p-3 rounded border">
+                <p><strong>Детайли за отстраняване на проблема:</strong></p>
+                <p>• Проверете дали имате интернет връзка</p>
+                <p>• Опитайте да презаредите страницата</p>
+                <p>• Проверете дали данните са заредени правилно</p>
+              </div>
             </div>
           </div>
         ) : (
           <ul className="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
-            {questions.map((question, index) => {
+            {availableQuestions.map((question, index) => {
               const questionId = question.id || `q${index}`;
               const options = getQuestionOptions(question);
               const selectedAnswer = answers[questionId];
