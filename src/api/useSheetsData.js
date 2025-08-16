@@ -18,11 +18,17 @@ export function useSheetsData() {
           fetchCSV(SHEETS.subjects),
           fetchCSV(SHEETS.lessons),
           fetchCSV(SHEETS.questions),
-          fetchCSV(SHEETS.theory),
+          fetchCSV(SHEETS.theory).catch(e => {
+            console.warn('Theory data failed to load:', e);
+            return []; // Return empty array for theory if it fails
+          }),
         ]);
         if (!cancelled) setData({ classes, subjects, lessons, questions, theory });
       } catch (e) {
-        if (!cancelled) setError(e?.message || "Грешка при зареждане");
+        if (!cancelled) {
+          console.error('Error loading sheets data:', e);
+          setError(e?.message || "Грешка при зареждане на данните");
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }

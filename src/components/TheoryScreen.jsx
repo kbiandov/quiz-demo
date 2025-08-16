@@ -157,11 +157,148 @@ export default function TheoryScreen({ profile, theory = [], classes = [], lesso
 
   // If theory data is not loaded yet, show loading
   if (!theory || theory.length === 0) {
+    // Development fallback - show sample data for testing
+    const isDevelopment = process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost';
+    
+    if (isDevelopment) {
+      const sampleTheory = [
+        {
+          id: 'sample1',
+          classId: profile?.classId ? Number(profile.classId) : 5,
+          lessonId: 'sample-lesson-1',
+          title: 'Примерна теория - Математически основи',
+          content: 'Това е примерна теория за демонстриране на функционалността. В реалната употреба, данните ще се зареждат от Google Sheets CSV файл.\n\nОсновните математически концепции включват:\n• Събиране и изваждане\n• Умножение и деление\n• Дроби и проценти\n• Геометрични форми',
+          image: undefined
+        },
+        {
+          id: 'sample2',
+          classId: profile?.classId ? Number(profile.classId) : 5,
+          lessonId: 'sample-lesson-2',
+          title: 'Примерна теория - Алгебра',
+          content: 'Алгебрата е клон на математиката, който работи с променливи и символи вместо конкретни числа.\n\nОсновни концепции:\n• Променливи (x, y, z)\n• Уравнения\n• Функции\n• Графики',
+          image: undefined
+        }
+      ];
+      
+      return (
+        <div className="max-w-7xl mx-auto p-4">
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-slate-800 mb-4">Теория (Демо режим)</h1>
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+              <p className="text-yellow-800 text-sm">
+                <strong>Забележка:</strong> Показваме примерни данни за демонстриране. 
+                За да заредите реална теория, обновете CSV URL в constants.js
+              </p>
+            </div>
+            
+            {/* Filters */}
+            <div className="flex flex-wrap gap-4 items-center">
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-slate-700">Клас:</label>
+                <select
+                  value={profile?.classId || ''}
+                  onChange={(e) => setActiveClassId(e.target.value ? Number(e.target.value) : null)}
+                  className="border border-slate-300 rounded-lg px-3 py-2 bg-white text-sm"
+                >
+                  <option value="">Всички класове</option>
+                  <option value={profile?.classId}>{profile?.classId ? `Клас ${profile.classId}` : 'Избран клас'}</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Content with sample data */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left Column - Theory List */}
+            <div className="space-y-3">
+              <h2 className="text-lg font-semibold text-slate-800 mb-4">
+                Списък ({sampleTheory.length})
+              </h2>
+              <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                {sampleTheory.map(item => (
+                  <div
+                    key={item.id}
+                    className={`card cursor-pointer transition-all hover:shadow-md ${
+                      selectedId === item.id ? 'ring-2 ring-blue-500 bg-blue-50' : ''
+                    }`}
+                    onClick={() => setSelectedId(item.id)}
+                  >
+                    <div className="card-content">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-medium text-slate-800 mb-2 line-clamp-2">
+                            {item.title}
+                          </h3>
+                          <p className="text-sm text-slate-600 line-clamp-3">
+                            {item.content}
+                          </p>
+                          <div className="flex items-center gap-2 mt-2 text-xs text-slate-500">
+                            {item.classId && (
+                              <span className="bg-slate-100 px-2 py-1 rounded">
+                                Клас {item.classId}
+                              </span>
+                            )}
+                            {item.lessonId && (
+                              <span className="bg-blue-100 px-2 py-1 rounded">
+                                Урок {item.lessonId}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right Column - Theory Detail */}
+            <div className="lg:sticky lg:top-4">
+              <h2 className="text-lg font-semibold text-slate-800 mb-4">Детайли</h2>
+              {selectedId ? (
+                <div className="card">
+                  <div className="card-content">
+                    <h3 className="text-xl font-semibold text-slate-800 mb-4">
+                      {sampleTheory.find(item => item.id === selectedId)?.title}
+                    </h3>
+                    
+                    <div className="prose prose-slate max-w-none">
+                      <div className="whitespace-pre-wrap text-slate-700 leading-relaxed">
+                        {sampleTheory.find(item => item.id === selectedId)?.content}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 mt-6 pt-4 border-t border-slate-200 text-sm text-slate-500">
+                      <span className="bg-slate-100 px-2 py-1 rounded">
+                        Клас {profile?.classId || 'Демо'}
+                      </span>
+                      <span className="bg-blue-100 px-2 py-1 rounded">
+                        Демо урок
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="card">
+                  <div className="card-content text-center text-slate-500 py-12">
+                    Изберете теория от списъка
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
     return (
       <div className="max-w-4xl mx-auto p-6">
         <div className="text-center">
           <h2 className="text-xl font-semibold mb-4 text-slate-800">Теория</h2>
-          <div className="animate-pulse text-lg text-slate-600">Зареждаме теорията…</div>
+          <div className="animate-pulse text-lg text-slate-600 mb-4">Зареждаме теорията…</div>
+          <p className="text-sm text-slate-500">
+            Ако зареждането продължава дълго, може да има проблем с достъпа до данните.
+          </p>
         </div>
       </div>
     );
