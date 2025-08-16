@@ -2,12 +2,24 @@ import React, { useMemo, useState } from "react";
 import { groupBy, normalizeId } from "../utils";
 
 function SimpleTabs({ defaultValue, tabs }){
-  const [val,setVal] = useState(defaultValue || (tabs[0] && tabs[0].value));
+  const [val, setVal] = useState(defaultValue || (tabs[0] && tabs[0].value));
+  
+  const handleTabClick = (tabValue) => setVal(tabValue);
+  
   return (<div>
     <div className="grid grid-cols-2 w-full gap-2">
-      {tabs.map(t=>(<button type="button" key={t.value} onClick={()=>setVal(t.value)} className={`btn ${val===t.value? 'bg-blue-50 border-blue-300':''}`}>{t.label}</button>))}
+      {tabs.map(t => (
+        <button 
+          type="button" 
+          key={t.value} 
+          onClick={() => handleTabClick(t.value)} 
+          className={`btn ${val === t.value ? 'bg-blue-50 border-blue-300' : ''}`}
+        >
+          {t.label}
+        </button>
+      ))}
     </div>
-    <div className="pt-4">{tabs.find(t=>t.value===val)?.content}</div>
+    <div className="pt-4">{tabs.find(t => t.value === val)?.content}</div>
   </div>);
 }
 

@@ -286,46 +286,65 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
       {showExplain ? (<div className={`mt-4 text-sm ${isCorrect ? "text-green-700" : "text-red-700"}`}>{isCorrect ? "Вярно! " : "Грешно. "}<span className="text-slate-700">Обяснение: {current.explanation || "—"}</span></div>) : null}
     </div></div>
     <div className="flex items-center justify-between">
-      {index < total - 1 ? (<button type="button" className="btn" onClick={()=>setIndex(index+1)}>Следващ въпрос</button>) : (<button type="button" className="btn" onClick={()=>setShowConfirm(true)}>Приключи</button>)}
-      <div className="text-sm text-slate-500">Избран отговор: <span className="font-medium">{answers[current.id] || "—"}</span></div>
+      {index < total - 1 ? (
+        <button type="button" className="btn" onClick={() => setIndex(index + 1)}>
+          Следващ въпрос
+        </button>
+      ) : (
+        <button type="button" className="btn" onClick={() => setShowConfirm(true)}>
+          Приключи
+        </button>
+      )}
+      <div className="text-sm text-slate-500">
+        Избран отговор: <span className="font-medium">{answers[current.id] || "—"}</span>
+      </div>
     </div>
-    {showConfirm && (<div className="modal-backdrop" onClick={()=>setShowConfirm(false)}>
-      <div className="modal" onClick={(e)=>e.stopPropagation()}>
-        <div className="mb-2 font-semibold text-lg">Готов ли си да предадеш теста?</div>
-        <div className="text-xs text-slate-500 mb-2">Провери обобщението по-долу и натисни „Предай".</div>
-        <div className="mb-3 p-3 rounded-lg border bg-slate-50 text-sm">Място за реклама или банер</div>
-        <div className="mb-2 text-xs text-slate-500">Рекламна пауза: остава {adLeft} сек.</div>
-        <div className="progress mb-3"><div style={{width:`${adProgress}%`}}/></div>
-        <div className="mt-1 mb-4 text-sm text-slate-700">
-          {(() => {
-            const {correct, wrong, unanswered} = computeScore();
-            return (
-              <div className="space-y-2">
-                <div className="grid grid-cols-2 gap-4 text-center">
-                  <div className="p-3 rounded-lg bg-green-50 border border-green-200">
-                    <div className="text-lg font-bold text-green-700">{correct}</div>
-                    <div className="text-xs text-green-600">Правилни</div>
+    {showConfirm && (
+      <div className="modal-backdrop" onClick={() => setShowConfirm(false)}>
+        <div className="modal" onClick={(e) => e.stopPropagation()}>
+          <div className="mb-2 font-semibold text-lg">Готов ли си да предадеш теста?</div>
+          <div className="text-xs text-slate-500 mb-2">Провери обобщението по-долу и натисни „Предай".</div>
+          <div className="mb-3 p-3 rounded-lg border bg-slate-50 text-sm">Място за реклама или банер</div>
+          <div className="mb-2 text-xs text-slate-500">Рекламна пауза: остава {adLeft} сек.</div>
+          <div className="progress mb-3">
+            <div style={{width: `${adProgress}%`}}/>
+          </div>
+          <div className="mt-1 mb-4 text-sm text-slate-700">
+            {(() => {
+              const {correct, wrong, unanswered} = computeScore();
+              return (
+                <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-4 text-center">
+                    <div className="p-3 rounded-lg bg-green-50 border border-green-200">
+                      <div className="text-lg font-bold text-green-700">{correct}</div>
+                      <div className="text-xs text-green-600">Правилни</div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-red-50 border border-red-200">
+                      <div className="text-lg font-bold text-red-700">{wrong}</div>
+                      <div className="text-xs text-red-600">Грешни</div>
+                    </div>
                   </div>
-                  <div className="p-3 rounded-lg bg-red-50 border border-red-200">
-                    <div className="text-lg font-bold text-red-700">{wrong}</div>
-                    <div className="text-xs text-red-600">Грешни</div>
+                  <div className="text-center p-2 rounded-lg bg-slate-50 border border-slate-200">
+                    <div className="text-sm text-slate-600">
+                      Отговорени: <b>{correct + wrong}</b> · 
+                      Пропуснати: <b>{unanswered}</b> · 
+                      Общо: <b>{total}</b>
+                    </div>
                   </div>
                 </div>
-                <div className="text-center p-2 rounded-lg bg-slate-50 border border-slate-200">
-                  <div className="text-sm text-slate-600">
-                    Отговорени: <b>{correct + wrong}</b> · 
-                    Пропуснати: <b>{unanswered}</b> · 
-                    Общо: <b>{total}</b>
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
+              );
+            })()}
+          </div>
+          <div className="flex justify-end gap-2">
+            <button type="button" className="btn" onClick={() => {
+              const {correct, wrong, unanswered, total} = computeScore();
+              onFinish({ lesson, correct, total, answers, at: new Date().toISOString(), timeLimitMin: settings?.timeLimitMin });
+            }}>
+              Предай
+            </button>
+          </div>
         </div>
-        <div className="flex justify-end gap-2"><button type="button" className="btn" onClick={()=>{
-          const {correct,wrong,unanswered,total} = computeScore();
-          onFinish({ lesson, correct, total, answers, at:new Date().toISOString(), timeLimitMin: settings?.timeLimitMin });
-        }}>Предай</button></div>
-      </div></div>)}
+      </div>
+    )}
   </div>);
 }
