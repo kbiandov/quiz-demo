@@ -3,7 +3,7 @@ import React from 'react';
 export default function ResultReview({ result, onRetakeTest }) {
   if (!result) return null;
 
-  const { lesson, correct, total, answers, at } = result;
+  const { lesson, correct, total, answers, at, questions } = result;
   const percentage = Math.round((correct / total) * 100);
   const date = new Date(at).toLocaleDateString('bg-BG', {
     year: 'numeric',
@@ -11,6 +11,16 @@ export default function ResultReview({ result, onRetakeTest }) {
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit'
+  });
+
+  // Debug logging
+  console.log('ResultReview render:', { 
+    result, 
+    questions: result.questions, 
+    questionsType: typeof result.questions,
+    questionsLength: result.questions?.length,
+    answers,
+    hasQuestions 
   });
 
   // Helper function to get option text
@@ -47,6 +57,9 @@ export default function ResultReview({ result, onRetakeTest }) {
     return options;
   };
 
+  // Check if we have questions data
+  const hasQuestions = questions && Array.isArray(questions) && questions.length > 0;
+
   return (
     <div className="p-6">
       {/* Header with Score */}
@@ -77,93 +90,102 @@ export default function ResultReview({ result, onRetakeTest }) {
       <div className="space-y-6">
         <h4 className="text-lg font-semibold text-slate-800 mb-4">Преглед на въпросите</h4>
         
-        <ul className="space-y-6">
-          {result.questions?.map((question, index) => {
-            const options = getQuestionOptions(question);
-            const selectedAnswer = answers[question.id];
-            const correctAnswer = String(question.correct || question.correct_option || question.answer || '').toUpperCase();
-            
-            return (
-              <li key={question.id || index} className="bg-slate-50 rounded-lg p-4">
-                {/* Question */}
-                <div className="mb-4">
-                  <h5 className="font-semibold text-slate-800 mb-2">
-                    Въпрос {index + 1}: {question.text || question.question || question.title}
-                  </h5>
-                  {question.image && (
-                    <img 
-                      src={question.image} 
-                      alt="Илюстрация" 
-                      className="max-w-full max-h-48 object-contain rounded-lg border mb-3"
-                    />
-                  )}
-                </div>
-
-                {/* Options */}
-                <div className="space-y-2 mb-4">
-                  {options.map((option) => {
-                    const isCorrect = isCorrectOption(question, option.key);
-                    const isSelected = wasSelected(question.id, option.key);
-                    const isCorrectAnswer = option.key === correctAnswer;
-                    
-                    let optionClasses = "p-3 rounded-lg border text-left transition-all";
-                    
-                    if (isCorrectAnswer) {
-                      // Correct answer - always green
-                      optionClasses += " bg-green-50 border-green-300 text-green-800";
-                    } else if (isSelected && !isCorrectAnswer) {
-                      // Selected but wrong - red
-                      optionClasses += " bg-red-50 border-red-300 text-red-800";
-                    } else if (isSelected && isCorrectAnswer) {
-                      // Selected and correct - green
-                      optionClasses += " bg-green-100 border-green-400 text-green-900";
-                    } else {
-                      // Not selected - neutral
-                      optionClasses += " bg-white border-slate-200 text-slate-700";
-                    }
-
-                    return (
-                      <div key={option.key} className={optionClasses}>
-                        <div className="flex items-center gap-3">
-                          <span className="font-semibold w-6 text-center">{option.key}.</span>
-                          <span className="flex-1">{option.text}</span>
-                          {isCorrectAnswer && (
-                            <span className="text-green-600 font-bold">✓</span>
-                          )}
-                          {isSelected && !isCorrectAnswer && (
-                            <span className="text-red-600 font-bold">✗</span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Explanation */}
-                {question.explanation && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <div className="text-sm text-blue-800">
-                      <strong>Обяснение:</strong> {question.explanation}
-                    </div>
+        {!hasQuestions ? (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
+            <div className="text-yellow-800">
+              <p className="font-medium mb-2">Въпросите не са налични за преглед</p>
+              <p className="text-sm">Това може да се дължи на по-стара версия на приложението</p>
+            </div>
+          </div>
+        ) : (
+          <ul className="space-y-6 max-h-[60vh] overflow-y-auto">
+            {questions.map((question, index) => {
+              const options = getQuestionOptions(question);
+              const selectedAnswer = answers[question.id];
+              const correctAnswer = String(question.correct || question.correct_option || question.answer || '').toUpperCase();
+              
+              return (
+                <li key={question.id || index} className="bg-slate-50 rounded-lg p-4">
+                  {/* Question */}
+                  <div className="mb-4">
+                    <h5 className="font-semibold text-slate-800 mb-2">
+                      Въпрос {index + 1}: {question.text || question.question || question.title}
+                    </h5>
+                    {question.image && (
+                      <img 
+                        src={question.image} 
+                        alt="Илюстрация" 
+                        className="max-w-full max-h-48 object-contain rounded-lg border mb-3"
+                      />
+                    )}
                   </div>
-                )}
 
-                {/* Result Summary for this question */}
-                <div className="mt-3 text-sm">
-                  {selectedAnswer ? (
-                    wasSelected(question.id, correctAnswer) ? (
-                      <span className="text-green-600 font-medium">✓ Правилен отговор</span>
-                    ) : (
-                      <span className="text-red-600 font-medium">✗ Грешен отговор</span>
-                    )
-                  ) : (
-                    <span className="text-slate-500">Пропуснат въпрос</span>
+                  {/* Options */}
+                  <div className="space-y-2 mb-4">
+                    {options.map((option) => {
+                      const isCorrect = isCorrectOption(question, option.key);
+                      const isSelected = wasSelected(question.id, option.key);
+                      const isCorrectAnswer = option.key === correctAnswer;
+                      
+                      let optionClasses = "p-3 rounded-lg border text-left transition-all";
+                      
+                      if (isCorrectAnswer) {
+                        // Correct answer - always green
+                        optionClasses += " bg-green-50 border-green-300 text-green-800";
+                      } else if (isSelected && !isCorrectAnswer) {
+                        // Selected but wrong - red
+                        optionClasses += " bg-red-50 border-red-300 text-red-800";
+                      } else if (isSelected && isCorrectAnswer) {
+                        // Selected and correct - green
+                        optionClasses += " bg-green-100 border-green-400 text-green-900";
+                      } else {
+                        // Not selected - neutral
+                        optionClasses += " bg-white border-slate-200 text-slate-700";
+                      }
+
+                      return (
+                        <div key={option.key} className={optionClasses}>
+                          <div className="flex items-center gap-3">
+                            <span className="font-semibold w-6 text-center">{option.key}.</span>
+                            <span className="flex-1">{option.text}</span>
+                            {isCorrectAnswer && (
+                              <span className="text-green-600 font-bold">✓</span>
+                            )}
+                            {isSelected && !isCorrectAnswer && (
+                              <span className="text-red-600 font-bold">✗</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Explanation */}
+                  {question.explanation && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                      <div className="text-sm text-blue-800">
+                        <strong>Обяснение:</strong> {question.explanation}
+                      </div>
+                    </div>
                   )}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+
+                  {/* Result Summary for this question */}
+                  <div className="mt-3 text-sm">
+                    {selectedAnswer ? (
+                      wasSelected(question.id, correctAnswer) ? (
+                        <span className="text-green-600 font-medium">✓ Правилен отговор</span>
+                      ) : (
+                        <span className="text-red-600 font-medium">✗ Грешен отговор</span>
+                      )
+                    ) : (
+                      <span className="text-slate-500">Пропуснат въпрос</span>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
 
       {/* Footer with Actions */}
