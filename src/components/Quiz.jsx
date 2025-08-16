@@ -20,7 +20,13 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
     });
   },[questions,settings?.shuffleQuestions,settings?.shuffleOptions]);
 
-  const current = qlist[index]; const total=qlist.length; const progress = total? Math.round((index/total)*100):0;
+  const current = qlist[index]; 
+  const total = qlist.length; 
+  const progress = total ? Math.round((index / total) * 100) : 0;
+  
+  // Enhanced progress calculation with visual feedback
+  const isNearEnd = progress >= 80;
+  const isLastQuestion = index === total - 1;
 
   useEffect(()=>()=>{ if (autoTimerRef.current){ clearTimeout(autoTimerRef.current); autoTimerRef.current=null; } },[index]);
 
@@ -48,10 +54,59 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
     <div className="mb-4">
       <div className="flex items-center justify-between mb-2">
         <div className="text-sm text-slate-600">Урок: <span className="font-medium text-slate-800">{lesson.title || lesson.name}</span></div>
-        <div className="flex items-center gap-4 text-sm text-slate-600"><div>Въпрос {index+1} от {total}</div>{settings?.timeLimitMin ? (<div className={`font-semibold ${timeLeft<=10?'text-red-600':''}`}>{hms(timeLeft)}</div>) : null}</div>
+        <div className="flex items-center gap-4 text-sm text-slate-600">
+          <div className="font-medium">Въпрос {index + 1} от {total}</div>
+          {settings?.timeLimitMin ? (
+            <div className={`font-semibold ${timeLeft<=10?'text-red-600':''}`}>{hms(timeLeft)}</div>
+          ) : null}
+        </div>
       </div>
-      <div className="progress"><div style={{width: `${progress}%`}}/></div>
+      
+      {/* Enhanced Progress Bar */}
+      <div className="relative">
+        <div className="progress h-3 bg-slate-200 rounded-full overflow-hidden">
+          <div 
+            className={`h-full transition-all duration-300 ease-out ${
+              isNearEnd ? 'bg-orange-500' : 'bg-blue-500'
+            } ${isLastQuestion ? 'bg-green-500' : ''}`}
+            style={{width: `${progress}%`}}
+          />
+        </div>
+        {/* Progress Label */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-xs font-medium text-white drop-shadow-sm">
+            {progress}%
+          </span>
+        </div>
+      </div>
+      
+      {/* Progress Text */}
+      <div className="text-center mt-2">
+        <span className="text-sm text-slate-600">
+          {index === 0 ? 'Започваме!' : 
+           isLastQuestion ? 'Последен въпрос!' : 
+           `Остават ${total - index - 1} въпроса`}
+        </span>
+      </div>
+      
+      {/* Question Progress Indicator */}
+      <div className="flex justify-center mt-2">
+        <div className="flex space-x-1">
+          {Array.from({ length: total }, (_, i) => (
+            <div
+              key={i}
+              className={`w-2 h-2 rounded-full transition-colors ${
+                i < index ? 'bg-green-500' : 
+                i === index ? 'bg-blue-500' : 
+                'bg-slate-300'
+              }`}
+              title={`Въпрос ${i + 1}`}
+            />
+          ))}
+        </div>
+      </div>
     </div>
+    
     <div className="card mb-4"><div className="card-content">
       <div className="text-lg font-medium mb-4">{current.text || current.question || current.title}</div>
       {current.image ? <img src={current.image} alt="Илюстрация" className="mb-4 rounded-lg border" /> : null}
@@ -68,7 +123,7 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
     {showConfirm && (<div className="modal-backdrop" onClick={()=>setShowConfirm(false)}>
       <div className="modal" onClick={(e)=>e.stopPropagation()}>
         <div className="mb-2 font-semibold text-lg">Готов ли си да предадеш теста?</div>
-        <div className="text-xs text-slate-500 mb-2">Провери обобщението по-долу и натисни „Предай“.</div>
+        <div className="text-xs text-slate-500 mb-2">Провери обобщението по-долу и натисни „Предай".</div>
         <div className="mb-3 p-3 rounded-lg border bg-slate-50 text-sm">Място за реклама или банер</div>
         <div className="mb-2 text-xs text-slate-500">Рекламна пауза: остава {adLeft} сек.</div>
         <div className="progress mb-3"><div style={{width:`${adProgress}%`}}/></div>
