@@ -10,46 +10,99 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
   const [explanationTimer, setExplanationTimer] = useState(null);
   const timeoutRef = useRef(null);
   const [showConfirm,setShowConfirm] = useState(false);
-  const [timeLeft,setTimeLeft] = useState(()=> (settings?.timeLimitMin || 0)*60);
-  const autoTimerRef = useRef(null);
-  const AD_SECONDS=5; const [adLeft,setAdLeft] = useState(AD_SECONDS);
-
-  const qlist = useMemo(()=>{
-    const base=[...questions]; if (settings?.shuffleQuestions) base.sort(()=>Math.random()-0.5);
-    return base.map(q=>{
-      const options=[{key:'A',text:q.A??q.a},{key:'B',text:q.B??q.b},{key:'C',text:q.C??q.c},{key:'D',text:q.D??q.d}].filter(o=>o.text!=null && String(o.text).trim()!=='');
-      const correctKey=String(q.correct||q.correct_option||q.answer||'').toUpperCase();
-      const correctText={A:q.A,B:q.B,C:q.C,D:q.D}[correctKey];
-      const shuffled = settings?.shuffleOptions ? [...options].sort(()=>Math.random()-0.5): options;
-      const newCorrectKey=(shuffled.find(o=>o.text===correctText)||{}).key || correctKey;
-      return {...q, __options:shuffled, __correctKey:newCorrectKey};
-    });
-  },[questions,settings?.shuffleQuestions,settings?.shuffleOptions]);
-
-  const current = qlist[index]; 
-  const total = qlist.length; 
-  const progress = total ? Math.round((index / total) * 100) : 0;
+  const [timeLeft, setTimeLeft] = useState(() => {
+    return (settings?.timeLimitMin || 0) * 60;
+  });
   
-  // Enhanced progress calculation with visual feedback
+  const autoTimerRef = useRef(null);
+  const AD_SECONDS = 5;
+  
+  const qlist = useMemo(() => {
+    const base = [...questions];
+    if (settings?.shuffleQuestions) {
+      base.sort(() => Math.random() - 0.5);
+    }
+    return base.map(q => {
+      const options = [
+        { key: 'A', text: q.A ?? q.a },
+        { key: 'B', text: q.B ?? q.b },
+        { key: 'C', text: q.C ?? q.c },
+        { key: 'D', text: q.D ?? q.d }
+      ].filter(o => o.text != null && String(o.text).trim() !== '');
+      
+      const correctKey = String(q.correct || q.correct_option || q.answer || '').toUpperCase();
+      const correctText = { A: q.A, B: q.B, C: q.C, D: q.D }[correctKey];
+      const shuffled = settings?.shuffleOptions ? [...options].sort(() => Math.random() - 0.5) : options;
+      const newCorrectKey = (shuffled.find(o => o.text === correctText) || {}).key || correctKey;
+      
+      return { ...q, __options: shuffled, __correctKey: newCorrectKey };
+    });
+  }, [questions, settings?.shuffleQuestions, settings?.shuffleOptions]);
+  
+  const current = qlist[index];
+  const total = qlist.length;
+  const progress = total ? Math.round((index / total) * 100) : 0;
   const isNearEnd = progress >= 80;
   const isLastQuestion = index === total - 1;
-
-  useEffect(()=>()=>{ if (autoTimerRef.current){ clearTimeout(autoTimerRef.current); autoTimerRef.current=null; } },[index]);
-
-  useEffect(()=>{ if(!settings?.timeLimitMin) return; if(timeLeft<=0){ submit(); return; } const t=setTimeout(()=>setTimeLeft(timeLeft-1),1000); return ()=>clearTimeout(t); },[timeLeft,settings?.timeLimitMin]);
-
-  useEffect(()=>{ if(!showConfirm) return; setAdLeft(AD_SECONDS); const tick=setInterval(()=>{ setAdLeft(s=>{ if(s<=1){ clearInterval(tick); return 0; } return s-1; }); },1000); return ()=>clearInterval(tick); },[showConfirm]);
-
-  function choose(optKey){
-    if (answers[current.id]) { return; } // Prevent changing answers
-    setAnswers(a=>({...a,[current.id]:optKey}));
+  
+  const options = useMemo(() => {
+    if (!current) return [];
+    const opts = [
+      { key: 'A', text: current.A || current.a },
+      { key: 'B', text: current.B || current.b },
+      { key: 'C', text: current.C || current.c },
+      { key: 'D', text: current.D || current.d }
+    ].filter(o => o.text != null && String(o.text).trim() !== '');
     
-    // Check if answer is correct and add points
+    const shuffled = settings?.shuffleOptions ? [...opts].sort(() => Math.random() - 0.5) : opts;
+    return shuffled;
+  }, [current, settings?.shuffleOptions]);
+
+  useEffect(() => {
+    if (autoTimerRef.current) {
+      clearTimeout(autoTimerRef.current);
+      autoTimerRef.current = null;
+    }
+  }, [index]);
+
+  useEffect(() => {
+    if (!settings?.timeLimitMin) return;
+    
+    if (timeLeft <= 0) {
+      submit();
+      return;
+    }
+    
+    const t = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
+    return () => clearTimeout(t);
+  }, [timeLeft, settings?.timeLimitMin]);
+
+  useEffect(() => {
+    if (!showConfirm) return;
+    
+    setAdLeft(AD_SECONDS);
+    const tick = setInterval(() => {
+      setAdLeft(s => {
+        if (s <= 1) {
+          clearInterval(tick);
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+    
+    return () => clearInterval(tick);
+  }, [showConfirm]);
+
+  function choose(optKey) {
+    if (answers[current.id]) { return; }
+    
+    setAnswers(prev => ({ ...prev, [current.id]: optKey }));
+    
     if (optKey === current.__correctKey) {
       addPoints(10);
     }
     
-    // Show explanation if enabled
     if (settings?.showExplanation) {
       setShowExplanation(true);
       if (settings?.instantNext) {
@@ -59,7 +112,6 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
         setExplanationTimer(timer);
       }
     } else {
-      // Auto-advance if no explanation
       setTimeout(next, 1000);
     }
   }
@@ -109,9 +161,12 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
   }
   if (!current) return <div className="p-6 text-center">Няма въпроси за този урок.</div>;
 
-  const opts=current.__options; const hms=s=>`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
-  const chosen=answers[current.id]; const showExplain=settings?.showExplanation && chosen; const isCorrect = chosen && chosen.toUpperCase()===current.__correctKey;
-  const adProgress=((AD_SECONDS-adLeft)/AD_SECONDS)*100;
+  const opts = current.__options;
+  const hms = s => `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+  const chosen = answers[current.id];
+  const showExplain = settings?.showExplanation && chosen;
+  const isCorrect = chosen && chosen.toUpperCase() === current.__correctKey;
+  const adProgress = ((AD_SECONDS - adLeft) / AD_SECONDS) * 100;
 
   return (<div className="max-w-3xl mx-auto p-4">
     {/* Points Indicator */}
@@ -172,17 +227,23 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
             const isCurrent = i === index;
             const isCompleted = i < index;
             
+            const dotClasses = `w-3 h-3 rounded-full transition-all duration-200 cursor-pointer ${
+              isCompleted ? 'bg-green-500' : 
+              isCurrent ? 'bg-blue-500' : 
+              isAnswered ? 'bg-yellow-500' : 
+              'bg-slate-300'
+            } ${isAnswered ? 'ring-2 ring-offset-1 ring-yellow-400' : ''}`;
+            
+            const dotTitle = `Въпрос ${i + 1}${isAnswered ? ' - Отговорен' : ''}`;
+            
+            const handleDotClick = () => setIndex(i);
+            
             return (
               <div
                 key={i}
-                className={`w-3 h-3 rounded-full transition-all duration-200 cursor-pointer ${
-                  isCompleted ? 'bg-green-500' : 
-                  isCurrent ? 'bg-blue-500' : 
-                  isAnswered ? 'bg-yellow-500' : 
-                  'bg-slate-300'
-                } ${isAnswered ? 'ring-2 ring-offset-1 ring-yellow-400' : ''}`}
-                title={`Въпрос ${i + 1}${isAnswered ? ' - Отговорен' : ''}`}
-                onClick={() => setIndex(i)}
+                className={dotClasses}
+                title={dotTitle}
+                onClick={handleDotClick}
               />
             );
           })}
@@ -194,27 +255,33 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
       <div className="text-lg font-medium mb-4">{current.text || current.question || current.title}</div>
       {current.image ? <img src={current.image} alt="Илюстрация" className="mb-4 rounded-lg border" /> : null}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {opts.map(o=>(
-          <button 
-            type="button" 
-            key={o.key} 
-            className={`btn h-auto py-3 text-left transition-all ${
-              chosen === o.key 
-                ? (isCorrect ? 'bg-green-100 border-green-300 text-green-800' : 'btn-danger') 
-                : 'hover:bg-slate-50'
-            } ${answers[current.id] ? 'cursor-default' : ''}`}
-            onClick={() => choose(o.key)}
-            disabled={answers[current.id] !== undefined}
-          >
-            <span className="font-semibold w-6 inline-block">{o.key}.</span>
-            <span className="ml-2">{o.text}</span>
-            {chosen === o.key && (
-              <span className="ml-2 text-sm">
-                {isCorrect ? '✓' : '✗'}
-              </span>
-            )}
-          </button>
-        ))}
+        {opts.map(o => {
+          const buttonClasses = `btn h-auto py-3 text-left transition-all ${
+            chosen === o.key 
+              ? (isCorrect ? 'bg-green-100 border-green-300 text-green-800' : 'btn-danger') 
+              : 'hover:bg-slate-50'
+          } ${answers[current.id] ? 'cursor-default' : ''}`;
+          
+          const handleClick = () => choose(o.key);
+          
+          return (
+            <button 
+              type="button" 
+              key={o.key} 
+              className={buttonClasses}
+              onClick={handleClick}
+              disabled={answers[current.id] !== undefined}
+            >
+              <span className="font-semibold w-6 inline-block">{o.key}.</span>
+              <span className="ml-2">{o.text}</span>
+              {chosen === o.key && (
+                <span className="ml-2 text-sm">
+                  {isCorrect ? '✓' : '✗'}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
       {showExplain ? (<div className={`mt-4 text-sm ${isCorrect ? "text-green-700" : "text-red-700"}`}>{isCorrect ? "Вярно! " : "Грешно. "}<span className="text-slate-700">Обяснение: {current.explanation || "—"}</span></div>) : null}
     </div></div>

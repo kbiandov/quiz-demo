@@ -142,16 +142,20 @@ export default function TheoryScreen({ profile, theory = [], classes = [], lesso
     }).sort((a, b) => a.name.localeCompare(b.name));
   }, [theory, lessons, activeClassId]);
 
-  // Handle class change
-  const handleClassChange = useCallback((classId) => {
-    setActiveClassId(classId ? Number(classId) : null);
-    setActiveLessonId(''); // Reset lesson filter
-  }, []);
-
-  // Handle lesson change
-  const handleLessonChange = useCallback((lessonId) => {
+  const handleClassChange = (classId) => {
+    setActiveClassId(classId);
+    setActiveLessonId(null);
+    setSelectedTheoryItem(null);
+  };
+  
+  const handleLessonChange = (lessonId) => {
     setActiveLessonId(lessonId);
-  }, []);
+    setSelectedTheoryItem(null);
+  };
+  
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+  };
 
   // Handle theory item click
   const handleTheoryClick = useCallback((theoryItem) => {
@@ -297,7 +301,7 @@ export default function TheoryScreen({ profile, theory = [], classes = [], lesso
               <input
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={handleSearchChange}
                 placeholder="Търси в заглавие и съдържание..."
                 className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               />

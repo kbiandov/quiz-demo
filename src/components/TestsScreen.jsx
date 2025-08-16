@@ -14,35 +14,40 @@ function SimpleTabs({ defaultValue, tabs }){
 export default function TestsScreen({ profile, lessons, classes, questions, onStartQuiz }){
   const [questionCounts, setQuestionCounts] = useState({});
   
-  const lessonsByClass = useMemo(()=> groupBy(lessons, (l)=> normalizeId(l.class_id || l.classId || l.class || l.grade)), [lessons]);
-  const classList = useMemo(()=> classes.map(c=> ({ id: normalizeId(c.id)||c.name, name: c.name||c.title||c.id })), [classes]);
-  const currentClassId = profile?.classId; const currentLessons = lessonsByClass[currentClassId] || [];
+  const lessonsByClass = useMemo(() => {
+    return groupBy(lessons, (l) => normalizeId(l.class_id || l.classId || l.class || l.grade));
+  }, [lessons]);
+  
+  const classList = useMemo(() => {
+    return classes.map(c => ({
+      id: normalizeId(c.id) || c.name,
+      name: c.name || c.title || c.id
+    }));
+  }, [classes]);
+  const currentClassId = profile?.classId;
+  const currentLessons = lessonsByClass[currentClassId] || [];
   
   function listQuestionsForLesson(lessonId){ const lid=normalizeId(lessonId); return questions.filter(q=> normalizeId(q.lesson_id||q.lessonId||q.lesson)===lid); }
   
-  function handleQuestionCountChange(lessonId, newCount) {
+  const handleQuestionCountChange = (lessonId, value) => {
     setQuestionCounts(prev => ({
       ...prev,
-      [lessonId]: newCount
+      [lessonId]: value === 'all' ? null : parseInt(value)
     }));
-  }
+  };
   
-  function handleStartQuiz(lesson, allQuestions) {
-    const lessonId = normalizeId(lesson.id);
+  const handleStartQuiz = (lesson, allQuestions) => {
+    const lessonId = lesson.id || lesson.lesson_id;
     const selectedCount = questionCounts[lessonId] || allQuestions.length;
     
-    let limitedQuestions;
-    if (selectedCount === allQuestions.length) {
-      // Use all questions as-is
-      limitedQuestions = allQuestions;
+    if (selectedCount === 'all' || selectedCount >= allQuestions.length) {
+      onStartQuiz(lesson, allQuestions);
     } else {
-      // Shuffle and take the first N questions for better randomization
       const shuffled = [...allQuestions].sort(() => Math.random() - 0.5);
-      limitedQuestions = shuffled.slice(0, selectedCount);
+      const limitedQuestions = shuffled.slice(0, selectedCount);
+      onStartQuiz(lesson, limitedQuestions);
     }
-    
-    onStartQuiz(lesson, limitedQuestions);
-  }
+  };
   
   function renderLessonCard(lesson, isCurrentClass = false) {
     const qs = listQuestionsForLesson(lesson.id);
