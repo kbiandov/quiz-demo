@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { normalizeId } from "../utils";
+import TheoryModal from "./TheoryModal";
 
 // Simple hook to get URL parameters
 function useURLParams() {
@@ -15,7 +16,7 @@ function useURLParams() {
   return [params, updateParams];
 }
 
-export default function TheoryScreen({ profile, theory = [], classes = [], lessons = [] }) {
+export default function TheoryScreen({ profile, theory = [], classes = [], lessons = [], questions = [], onStartQuiz }) {
   console.log('TheoryScreen render - theory data:', theory);
   console.log('TheoryScreen render - theory length:', theory?.length);
   console.log('TheoryScreen render - profile:', profile);
@@ -27,7 +28,6 @@ export default function TheoryScreen({ profile, theory = [], classes = [], lesso
   // Get URL parameters
   const urlClassId = searchParams.get('class');
   const urlLessonId = searchParams.get('lesson');
-  const urlTheoryId = searchParams.get('id');
   
   // Local state
   const [activeClassId, setActiveClassId] = useState(() => {
@@ -48,9 +48,13 @@ export default function TheoryScreen({ profile, theory = [], classes = [], lesso
     return null;
   });
   const [activeLessonId, setActiveLessonId] = useState(urlLessonId || '');
-  const [selectedId, setSelectedId] = useState(urlTheoryId || '');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  
+  // Modal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedTheoryItem, setSelectedTheoryItem] = useState(null);
+  const [selectedLesson, setSelectedLesson] = useState(null);
 
   // Debounce search input
   useEffect(() => {
@@ -65,9 +69,8 @@ export default function TheoryScreen({ profile, theory = [], classes = [], lesso
     const params = new URLSearchParams();
     if (activeClassId) params.set('class', activeClassId.toString());
     if (activeLessonId) params.set('lesson', activeLessonId);
-    if (selectedId) params.set('id', selectedId);
     setSearchParams(params);
-  }, [activeClassId, activeLessonId, selectedId, setSearchParams]);
+  }, [activeClassId, activeLessonId, setSearchParams]);
 
   // Filter theory items based on current filters
   const filteredTheory = useMemo(() => {
@@ -139,35 +142,45 @@ export default function TheoryScreen({ profile, theory = [], classes = [], lesso
     }).sort((a, b) => a.name.localeCompare(b.name));
   }, [theory, lessons, activeClassId]);
 
-  // Auto-select first item if none selected
-  useEffect(() => {
-    if (!selectedId && filteredTheory.length > 0) {
-      setSelectedId(filteredTheory[0].id);
-    }
-  }, [filteredTheory, selectedId]);
-
-  // Get selected theory item
-  const selectedTheory = useMemo(() => {
-    return theory.find(item => item.id === selectedId);
-  }, [theory, selectedId]);
-
   // Handle class change
   const handleClassChange = useCallback((classId) => {
     setActiveClassId(classId ? Number(classId) : null);
     setActiveLessonId(''); // Reset lesson filter
-    setSelectedId(''); // Reset selection
   }, []);
 
   // Handle lesson change
   const handleLessonChange = useCallback((lessonId) => {
     setActiveLessonId(lessonId);
-    setSelectedId(''); // Reset selection
   }, []);
 
-  // Handle theory item selection
-  const handleTheorySelect = useCallback((theoryId) => {
-    setSelectedId(theoryId);
-  }, []);
+  // Handle theory item click
+  const handleTheoryClick = useCallback((theoryItem) => {
+    // Find the corresponding lesson for this theory item
+    const lesson = lessons.find(l => normalizeId(l.id) === theoryItem.lessonId);
+    setSelectedTheoryItem(theoryItem);
+    setSelectedLesson(lesson);
+    setModalOpen(true);
+  }, [lessons]);
+
+  // Handle start test
+  const handleStartTest = useCallback((lesson) => {
+    if (lesson && onStartQuiz) {
+      // Find questions for this lesson
+      const lessonQuestions = questions.filter(q => {
+        const questionLessonId = q.lesson_id || q.lessonId;
+        const lessonId = lesson.id || lesson.lesson_id;
+        return normalizeId(questionLessonId) === normalizeId(lessonId);
+      });
+      
+      if (lessonQuestions.length > 0) {
+        console.log('Starting test for lesson:', lesson, 'with', lessonQuestions.length, 'questions');
+        onStartQuiz(lesson, lessonQuestions);
+      } else {
+        console.warn('No questions found for lesson:', lesson);
+        // You could show a toast or alert here
+      }
+    }
+  }, [onStartQuiz, questions]);
 
   // If no profile, show prompt
   if (!profile) {
@@ -194,153 +207,6 @@ export default function TheoryScreen({ profile, theory = [], classes = [], lesso
 
   // If theory data is not loaded yet, show loading
   if (!theory || theory.length === 0) {
-    // Development fallback - show sample data for testing
-    const isDevelopment = process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost';
-    
-    if (isDevelopment) {
-      const sampleTheory = [
-        {
-          id: 'sample1',
-          classId: profile?.classId ? Number(profile.classId) : 5,
-          lessonId: 'sample-lesson-1',
-          title: 'Примерна теория - Математически основи',
-          content: 'Това е примерна теория за демонстриране на функционалността. В реалната употреба, данните ще се зареждат от Google Sheets CSV файл.\n\nОсновните математически концепции включват:\n• Събиране и изваждане\n• Умножение и деление\n• Дроби и проценти\n• Геометрични форми',
-          image: undefined
-        },
-        {
-          id: 'sample2',
-          classId: profile?.classId ? Number(profile.classId) : 5,
-          lessonId: 'sample-lesson-2',
-          title: 'Примерна теория - Алгебра',
-          content: 'Алгебрата е клон на математиката, който работи с променливи и символи вместо конкретни числа.\n\nОсновни концепции:\n• Променливи (x, y, z)\n• Уравнения\n• Функции\n• Графики',
-          image: undefined
-        }
-      ];
-      
-      return (
-        <div className="min-h-screen bg-slate-50">
-          <div className="max-w-7xl mx-auto p-4 sm:p-6">
-            {/* Header */}
-            <div className="mb-6 bg-white rounded-xl p-6 shadow-sm">
-              <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-6">Теория (Демо режим)</h1>
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-                <p className="text-yellow-800 text-sm">
-                  <strong>Забележка:</strong> Показваме примерни данни за демонстриране. 
-                  За да заредите реална теория, обновете CSV URL в constants.js
-                </p>
-              </div>
-              
-              {/* Filters */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700">Клас</label>
-                  <select
-                    value={profile?.classId || ''}
-                    onChange={(e) => setActiveClassId(e.target.value ? Number(e.target.value) : null)}
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  >
-                    <option value="">Всички класове</option>
-                    <option value={profile?.classId}>{profile?.classId ? `Клас ${profile.classId}` : 'Избран клас'}</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* Content with sample data */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-              {/* Left Column - Theory List */}
-              <div className="space-y-4">
-                <div className="bg-white rounded-xl p-4 shadow-sm">
-                  <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                    <span>📖</span>
-                    Списък ({sampleTheory.length})
-                  </h2>
-                  <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-2">
-                    {sampleTheory.map(item => (
-                      <div
-                        key={item.id}
-                        className={`bg-white border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md hover:border-blue-300 ${
-                          selectedId === item.id 
-                            ? 'ring-2 ring-blue-500 border-blue-500 bg-blue-50' 
-                            : 'border-slate-200 hover:border-blue-300'
-                        }`}
-                        onClick={() => setSelectedId(item.id)}
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-slate-800 mb-2 line-clamp-2 text-base">
-                              {item.title}
-                            </h3>
-                            <p className="text-sm text-slate-600 line-clamp-3 leading-relaxed">
-                              {item.content}
-                            </p>
-                            <div className="flex items-center gap-2 mt-3 text-xs">
-                              {item.classId && (
-                                <span className="bg-slate-100 text-slate-700 px-2 py-1 rounded-full font-medium">
-                                  Клас {item.classId}
-                                </span>
-                              )}
-                              {item.lessonId && (
-                                <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
-                                  Урок {item.lessonId}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Column - Theory Detail */}
-              <div className="xl:sticky xl:top-4">
-                <div className="bg-white rounded-xl shadow-sm">
-                  <div className="p-4 border-b border-slate-200">
-                    <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-                      <span>📋</span>
-                      Детайли
-                    </h2>
-                  </div>
-                  
-                  {selectedId ? (
-                    <div className="p-6">
-                      <h3 className="text-xl font-bold text-slate-800 mb-4 leading-tight">
-                        {sampleTheory.find(item => item.id === selectedId)?.title}
-                      </h3>
-                      
-                      <div className="prose prose-slate max-w-none">
-                        <div className="whitespace-pre-wrap text-slate-700 leading-relaxed text-base">
-                          {sampleTheory.find(item => item.id === selectedId)?.content}
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-2 mt-6 pt-4 border-t border-slate-200">
-                        <span className="bg-slate-100 text-slate-700 px-3 py-1 rounded-full text-sm font-medium">
-                          Клас {profile?.classId || 'Демо'}
-                        </span>
-                        <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">
-                          Демо урок
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="p-12 text-center">
-                      <div className="text-4xl mb-4">🔍</div>
-                      <p className="text-slate-500 text-lg">
-                        Изберете теория от списъка за да видите детайлите
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
-    
     return (
       <div className="min-h-screen bg-slate-50">
         <div className="max-w-4xl mx-auto p-4 sm:p-6">
@@ -382,7 +248,7 @@ export default function TheoryScreen({ profile, theory = [], classes = [], lesso
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <div className="max-w-7xl mx-auto p-4 sm:p-6">
+      <div className="max-w-6xl mx-auto p-4 sm:p-6">
         {/* Header */}
         <div className="mb-6 bg-white rounded-xl p-6 shadow-sm">
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-6">Теория</h1>
@@ -467,124 +333,63 @@ export default function TheoryScreen({ profile, theory = [], classes = [], lesso
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            {/* Left Column - Theory List */}
-            <div className="space-y-4">
-              <div className="bg-white rounded-xl p-4 shadow-sm">
-                <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                  <span>📖</span>
-                  Списък ({filteredTheory.length})
-                </h2>
-                <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-2">
-                  {filteredTheory.map(item => (
-                    <div
-                      key={item.id}
-                      className={`bg-white border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md hover:border-blue-300 ${
-                        selectedId === item.id 
-                          ? 'ring-2 ring-blue-500 border-blue-500 bg-blue-50' 
-                          : 'border-slate-200 hover:border-blue-300'
-                      }`}
-                      onClick={() => handleTheorySelect(item.id)}
-                    >
-                      <div className="flex items-start gap-3">
-                        {item.image && (
-                          <img
-                            src={item.image}
-                            alt={item.title}
-                            className="w-16 h-16 object-cover rounded-lg border flex-shrink-0"
-                            onError={(e) => {
-                              e.target.style.display = 'none';
-                            }}
-                          />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-slate-800 mb-2 line-clamp-2 text-base">
-                            {item.title}
-                          </h3>
-                          <p className="text-sm text-slate-600 line-clamp-3 leading-relaxed">
-                            {item.content}
-                          </p>
-                          <div className="flex items-center gap-2 mt-3 text-xs">
-                            {item.classId && (
-                              <span className="bg-slate-100 text-slate-700 px-2 py-1 rounded-full font-medium">
-                                Клас {item.classId}
-                              </span>
-                            )}
-                            {item.lessonId && (
-                              <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
-                                Урок {item.lessonId}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+          <div className="bg-white rounded-xl shadow-sm">
+            <div className="p-6 border-b border-slate-200">
+              <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
+                <span>📖</span>
+                Уроци с теория ({filteredTheory.length})
+              </h2>
             </div>
-
-            {/* Right Column - Theory Detail */}
-            <div className="xl:sticky xl:top-4">
-              <div className="bg-white rounded-xl shadow-sm">
-                <div className="p-4 border-b border-slate-200">
-                  <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-                    <span>📋</span>
-                    Детайли
-                  </h2>
+            
+            <div className="divide-y divide-slate-200">
+              {filteredTheory.map(item => (
+                <div
+                  key={item.id}
+                  className="p-6 hover:bg-slate-50 cursor-pointer transition-colors"
+                  onClick={() => handleTheoryClick(item)}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-slate-800 mb-2">
+                        {item.title}
+                      </h3>
+                      <p className="text-slate-600 line-clamp-2 mb-3">
+                        {item.content}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        {item.classId && (
+                          <span className="bg-slate-100 text-slate-700 px-2 py-1 rounded-full text-xs font-medium">
+                            Клас {item.classId}
+                          </span>
+                        )}
+                        {item.lessonId && (
+                          <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-medium">
+                            Урок {item.lessonId}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="ml-4 text-slate-400">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
-                
-                {selectedTheory ? (
-                  <div className="p-6">
-                    <h3 className="text-xl font-bold text-slate-800 mb-4 leading-tight">
-                      {selectedTheory.title}
-                    </h3>
-                    
-                    {selectedTheory.image && (
-                      <div className="mb-6">
-                        <img
-                          src={selectedTheory.image}
-                          alt={selectedTheory.title}
-                          className="w-full max-w-md mx-auto rounded-lg border shadow-sm"
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                          }}
-                        />
-                      </div>
-                    )}
-                    
-                    <div className="prose prose-slate max-w-none">
-                      <div className="whitespace-pre-wrap text-slate-700 leading-relaxed text-base">
-                        {selectedTheory.content}
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-2 mt-6 pt-4 border-t border-slate-200">
-                      {selectedTheory.classId && (
-                        <span className="bg-slate-100 text-slate-700 px-3 py-1 rounded-full text-sm font-medium">
-                          Клас {selectedTheory.classId}
-                        </span>
-                      )}
-                      {selectedTheory.lessonId && (
-                        <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">
-                          Урок {selectedTheory.lessonId}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-12 text-center">
-                    <div className="text-4xl mb-4">🔍</div>
-                    <p className="text-slate-500 text-lg">
-                      Изберете теория от списъка за да видите детайлите
-                    </p>
-                  </div>
-                )}
-              </div>
+              ))}
             </div>
           </div>
         )}
       </div>
+
+      {/* Theory Modal */}
+      <TheoryModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        theoryItem={selectedTheoryItem}
+        lesson={selectedLesson}
+        onStartTest={handleStartTest}
+      />
     </div>
   );
 }
