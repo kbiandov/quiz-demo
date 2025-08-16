@@ -18,6 +18,9 @@ export default function ResultReview({ result, onRetakeTest }) {
     minute: '2-digit'
   });
 
+  // Check if we have questions data - moved to top to avoid lexical declaration error
+  const hasQuestions = questions && Array.isArray(questions) && questions.length > 0;
+
   // Debug logging
   console.log('ResultReview render:', { 
     result, 
@@ -61,9 +64,6 @@ export default function ResultReview({ result, onRetakeTest }) {
     });
     return options;
   };
-
-  // Check if we have questions data
-  const hasQuestions = questions && Array.isArray(questions) && questions.length > 0;
 
   return (
     <div className="p-6">
