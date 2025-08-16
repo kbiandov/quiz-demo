@@ -26,11 +26,20 @@ export default function MathApp(){
   useEffect(()=>{ if(!profile && !loading) setRoute("onboarding"); },[profile,loading]);
 
   function handleFinishQuiz(summary){ 
+    console.log('Quiz finished, summary received:', summary);
+    console.log('Summary keys:', Object.keys(summary));
+    console.log('Summary qlist:', summary.qlist);
+    console.log('Summary questions:', summary.questions);
+    
     // Store the complete result including questions for retaking
     const resultWithQuestions = {
       ...summary,
       questions: summary.qlist || summary.questions || [] // Use qlist if available, fallback to questions
     };
+    
+    console.log('Result with questions to be saved:', resultWithQuestions);
+    console.log('Questions field in result:', resultWithQuestions.questions);
+    
     setResults([resultWithQuestions, ...results]); 
     
     // Store last quiz with questions for retaking
@@ -38,6 +47,12 @@ export default function MathApp(){
       lesson: summary.lesson, 
       questions: resultWithQuestions.questions 
     }); 
+    
+    console.log('Last quiz stored:', { 
+      lesson: summary.lesson, 
+      questions: resultWithQuestions.questions 
+    });
+    
     setActiveQuiz(null); 
     setRoute("results"); 
   }

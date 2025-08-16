@@ -13,7 +13,20 @@ export default function ResultsScreen(props) {
   const [activeResult, setActiveResult] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Debug logging to see what data we have
+  console.log('ResultsScreen render:', { 
+    resultsCount: results.length,
+    results: results,
+    firstResult: results[0],
+    firstResultKeys: results[0] ? Object.keys(results[0]) : [],
+    firstResultQuestions: results[0]?.questions,
+    firstResultQlist: results[0]?.qlist
+  });
+
   const handleResultClick = (result) => {
+    console.log('Result clicked:', result);
+    console.log('Result questions:', result.questions);
+    console.log('Result qlist:', result.qlist);
     setActiveResult(result);
     setIsModalOpen(true);
   };
@@ -89,6 +102,22 @@ export default function ResultsScreen(props) {
     <div className="min-h-screen bg-slate-50">
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
         <h1 className="text-3xl font-bold text-slate-800 mb-8">Резултати</h1>
+        
+        {/* Debug: Clear Results Button */}
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-sm text-red-800 mb-2">
+            <strong>Debug:</strong> Clear results to test with fresh data
+          </p>
+          <button
+            onClick={() => {
+              localStorage.removeItem('quiz-results');
+              window.location.reload();
+            }}
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded text-sm"
+          >
+            Clear All Results
+          </button>
+        </div>
         
         {/* Results List */}
         <div className="space-y-4">
