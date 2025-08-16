@@ -138,18 +138,21 @@ export default function TheoryScreen({ profile, theory = [], classes = [], lesso
   // If no profile, show prompt
   if (!profile) {
     return (
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold mb-4 text-slate-800">Теория</h2>
-          <p className="text-slate-600 mb-4">
-            Моля, въведете профил/клас в настройките за да видите теорията
-          </p>
-          <button 
-            className="btn btn-primary"
-            onClick={() => window.location.href = '/onboarding'}
-          >
-            Въведи профил
-          </button>
+      <div className="min-h-screen bg-slate-50">
+        <div className="max-w-4xl mx-auto p-4 sm:p-6">
+          <div className="bg-white rounded-xl p-12 text-center shadow-sm">
+            <div className="text-6xl mb-4">👤</div>
+            <h2 className="text-2xl font-semibold mb-4 text-slate-800">Профилът е задължителен</h2>
+            <p className="text-slate-600 mb-6 text-lg">
+              Моля, въведете профил/клас в настройките за да видите теорията
+            </p>
+            <button 
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+              onClick={() => window.location.href = '/onboarding'}
+            >
+              Въведи профил
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -181,110 +184,123 @@ export default function TheoryScreen({ profile, theory = [], classes = [], lesso
       ];
       
       return (
-        <div className="max-w-7xl mx-auto p-4">
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-slate-800 mb-4">Теория (Демо режим)</h1>
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-              <p className="text-yellow-800 text-sm">
-                <strong>Забележка:</strong> Показваме примерни данни за демонстриране. 
-                За да заредите реална теория, обновете CSV URL в constants.js
-              </p>
-            </div>
-            
-            {/* Filters */}
-            <div className="flex flex-wrap gap-4 items-center">
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-slate-700">Клас:</label>
-                <select
-                  value={profile?.classId || ''}
-                  onChange={(e) => setActiveClassId(e.target.value ? Number(e.target.value) : null)}
-                  className="border border-slate-300 rounded-lg px-3 py-2 bg-white text-sm"
-                >
-                  <option value="">Всички класове</option>
-                  <option value={profile?.classId}>{profile?.classId ? `Клас ${profile.classId}` : 'Избран клас'}</option>
-                </select>
+        <div className="min-h-screen bg-slate-50">
+          <div className="max-w-7xl mx-auto p-4 sm:p-6">
+            {/* Header */}
+            <div className="mb-6 bg-white rounded-xl p-6 shadow-sm">
+              <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-6">Теория (Демо режим)</h1>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                <p className="text-yellow-800 text-sm">
+                  <strong>Забележка:</strong> Показваме примерни данни за демонстриране. 
+                  За да заредите реална теория, обновете CSV URL в constants.js
+                </p>
+              </div>
+              
+              {/* Filters */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">Клас</label>
+                  <select
+                    value={profile?.classId || ''}
+                    onChange={(e) => setActiveClassId(e.target.value ? Number(e.target.value) : null)}
+                    className="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  >
+                    <option value="">Всички класове</option>
+                    <option value={profile?.classId}>{profile?.classId ? `Клас ${profile.classId}` : 'Избран клас'}</option>
+                  </select>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Content with sample data */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Left Column - Theory List */}
-            <div className="space-y-3">
-              <h2 className="text-lg font-semibold text-slate-800 mb-4">
-                Списък ({sampleTheory.length})
-              </h2>
-              <div className="space-y-3 max-h-[600px] overflow-y-auto">
-                {sampleTheory.map(item => (
-                  <div
-                    key={item.id}
-                    className={`card cursor-pointer transition-all hover:shadow-md ${
-                      selectedId === item.id ? 'ring-2 ring-blue-500 bg-blue-50' : ''
-                    }`}
-                    onClick={() => setSelectedId(item.id)}
-                  >
-                    <div className="card-content">
-                      <div className="flex items-start gap-3">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-medium text-slate-800 mb-2 line-clamp-2">
-                            {item.title}
-                          </h3>
-                          <p className="text-sm text-slate-600 line-clamp-3">
-                            {item.content}
-                          </p>
-                          <div className="flex items-center gap-2 mt-2 text-xs text-slate-500">
-                            {item.classId && (
-                              <span className="bg-slate-100 px-2 py-1 rounded">
-                                Клас {item.classId}
-                              </span>
-                            )}
-                            {item.lessonId && (
-                              <span className="bg-blue-100 px-2 py-1 rounded">
-                                Урок {item.lessonId}
-                              </span>
-                            )}
+            {/* Content with sample data */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              {/* Left Column - Theory List */}
+              <div className="space-y-4">
+                <div className="bg-white rounded-xl p-4 shadow-sm">
+                  <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                    <span>📖</span>
+                    Списък ({sampleTheory.length})
+                  </h2>
+                  <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-2">
+                    {sampleTheory.map(item => (
+                      <div
+                        key={item.id}
+                        className={`bg-white border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md hover:border-blue-300 ${
+                          selectedId === item.id 
+                            ? 'ring-2 ring-blue-500 border-blue-500 bg-blue-50' 
+                            : 'border-slate-200 hover:border-blue-300'
+                        }`}
+                        onClick={() => setSelectedId(item.id)}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-slate-800 mb-2 line-clamp-2 text-base">
+                              {item.title}
+                            </h3>
+                            <p className="text-sm text-slate-600 line-clamp-3 leading-relaxed">
+                              {item.content}
+                            </p>
+                            <div className="flex items-center gap-2 mt-3 text-xs">
+                              {item.classId && (
+                                <span className="bg-slate-100 text-slate-700 px-2 py-1 rounded-full font-medium">
+                                  Клас {item.classId}
+                                </span>
+                              )}
+                              {item.lessonId && (
+                                <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
+                                  Урок {item.lessonId}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
+                    ))}
                   </div>
-                ))}
+                </div>
               </div>
-            </div>
 
-            {/* Right Column - Theory Detail */}
-            <div className="lg:sticky lg:top-4">
-              <h2 className="text-lg font-semibold text-slate-800 mb-4">Детайли</h2>
-              {selectedId ? (
-                <div className="card">
-                  <div className="card-content">
-                    <h3 className="text-xl font-semibold text-slate-800 mb-4">
-                      {sampleTheory.find(item => item.id === selectedId)?.title}
-                    </h3>
-                    
-                    <div className="prose prose-slate max-w-none">
-                      <div className="whitespace-pre-wrap text-slate-700 leading-relaxed">
-                        {sampleTheory.find(item => item.id === selectedId)?.content}
+              {/* Right Column - Theory Detail */}
+              <div className="xl:sticky xl:top-4">
+                <div className="bg-white rounded-xl shadow-sm">
+                  <div className="p-4 border-b border-slate-200">
+                    <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                      <span>📋</span>
+                      Детайли
+                    </h2>
+                  </div>
+                  
+                  {selectedId ? (
+                    <div className="p-6">
+                      <h3 className="text-xl font-bold text-slate-800 mb-4 leading-tight">
+                        {sampleTheory.find(item => item.id === selectedId)?.title}
+                      </h3>
+                      
+                      <div className="prose prose-slate max-w-none">
+                        <div className="whitespace-pre-wrap text-slate-700 leading-relaxed text-base">
+                          {sampleTheory.find(item => item.id === selectedId)?.content}
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 mt-6 pt-4 border-t border-slate-200">
+                        <span className="bg-slate-100 text-slate-700 px-3 py-1 rounded-full text-sm font-medium">
+                          Клас {profile?.classId || 'Демо'}
+                        </span>
+                        <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">
+                          Демо урок
+                        </span>
                       </div>
                     </div>
-                    
-                    <div className="flex items-center gap-2 mt-6 pt-4 border-t border-slate-200 text-sm text-slate-500">
-                      <span className="bg-slate-100 px-2 py-1 rounded">
-                        Клас {profile?.classId || 'Демо'}
-                      </span>
-                      <span className="bg-blue-100 px-2 py-1 rounded">
-                        Демо урок
-                      </span>
+                  ) : (
+                    <div className="p-12 text-center">
+                      <div className="text-4xl mb-4">🔍</div>
+                      <p className="text-slate-500 text-lg">
+                        Изберете теория от списъка за да видите детайлите
+                      </p>
                     </div>
-                  </div>
+                  )}
                 </div>
-              ) : (
-                <div className="card">
-                  <div className="card-content text-center text-slate-500 py-12">
-                    Изберете теория от списъка
-                  </div>
-                </div>
-              )}
+              </div>
             </div>
           </div>
         </div>
@@ -292,13 +308,16 @@ export default function TheoryScreen({ profile, theory = [], classes = [], lesso
     }
     
     return (
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold mb-4 text-slate-800">Теория</h2>
-          <div className="animate-pulse text-lg text-slate-600 mb-4">Зареждаме теорията…</div>
-          <p className="text-sm text-slate-500">
-            Ако зареждането продължава дълго, може да има проблем с достъпа до данните.
-          </p>
+      <div className="min-h-screen bg-slate-50">
+        <div className="max-w-4xl mx-auto p-4 sm:p-6">
+          <div className="bg-white rounded-xl p-12 text-center shadow-sm">
+            <div className="text-6xl mb-4">⏳</div>
+            <h2 className="text-2xl font-semibold mb-4 text-slate-800">Зареждаме теорията</h2>
+            <div className="animate-pulse text-lg text-slate-600 mb-4">Моля, изчакайте...</div>
+            <p className="text-sm text-slate-500">
+              Ако зареждането продължава дълго, може да има проблем с достъпа до данните.
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -307,194 +326,213 @@ export default function TheoryScreen({ profile, theory = [], classes = [], lesso
   // Error state
   if (error) {
     return (
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold mb-4 text-slate-800">Теория</h2>
-          <div className="text-red-600 mb-4">{error}</div>
-          <button 
-            className="btn"
-            onClick={() => window.location.reload()}
-          >
-            Опитай отново
-          </button>
+      <div className="min-h-screen bg-slate-50">
+        <div className="max-w-4xl mx-auto p-4 sm:p-6">
+          <div className="bg-white rounded-xl p-12 text-center shadow-sm">
+            <div className="text-6xl mb-4">❌</div>
+            <h2 className="text-2xl font-semibold mb-4 text-slate-800">Възникна грешка</h2>
+            <div className="text-red-600 mb-6 p-4 bg-red-50 rounded-lg border border-red-200">
+              {error}
+            </div>
+            <button 
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+              onClick={() => window.location.reload()}
+            >
+              Опитай отново
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-4">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-800 mb-4">Теория</h1>
-        
-        {/* Filters */}
-        <div className="flex flex-wrap gap-4 items-center">
-          {/* Class Selector */}
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-slate-700">Клас:</label>
-            <select
-              value={activeClassId || ''}
-              onChange={(e) => handleClassChange(e.target.value)}
-              className="border border-slate-300 rounded-lg px-3 py-2 bg-white text-sm"
-            >
-              <option value="">Всички класове</option>
-              {availableClasses.map(cls => (
-                <option key={cls.id} value={cls.id}>
-                  {cls.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Lesson Selector */}
-          {activeClassId && availableLessons.length > 0 && (
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-slate-700">Урок:</label>
+    <div className="min-h-screen bg-slate-50">
+      <div className="max-w-7xl mx-auto p-4 sm:p-6">
+        {/* Header */}
+        <div className="mb-6 bg-white rounded-xl p-6 shadow-sm">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-6">Теория</h1>
+          
+          {/* Filters */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Class Selector */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700">Клас</label>
               <select
-                value={activeLessonId}
-                onChange={(e) => handleLessonChange(e.target.value)}
-                className="border border-slate-300 rounded-lg px-3 py-2 bg-white text-sm"
+                value={activeClassId || ''}
+                onChange={(e) => handleClassChange(e.target.value)}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               >
-                <option value="all">Всички уроци</option>
-                {availableLessons.map(lesson => (
-                  <option key={lesson.id} value={lesson.id}>
-                    {lesson.name}
+                <option value="">Всички класове</option>
+                {availableClasses.map(cls => (
+                  <option key={cls.id} value={cls.id}>
+                    {cls.name}
                   </option>
                 ))}
               </select>
             </div>
-          )}
 
-          {/* Search Input */}
-          <div className="flex items-center gap-2 flex-1 min-w-64">
-            <label className="text-sm font-medium text-slate-700">Търсене:</label>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Търси в заглавие и съдържание..."
-              className="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm"
-            />
+            {/* Lesson Selector */}
+            {activeClassId && availableLessons.length > 0 && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">Урок</label>
+                <select
+                  value={activeLessonId}
+                  onChange={(e) => handleLessonChange(e.target.value)}
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                >
+                  <option value="all">Всички уроци</option>
+                  {availableLessons.map(lesson => (
+                    <option key={lesson.id} value={lesson.id}>
+                      {lesson.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Search Input */}
+            <div className={`space-y-2 ${activeClassId && availableLessons.length > 0 ? 'sm:col-span-2' : 'sm:col-span-3'}`}>
+              <label className="text-sm font-medium text-slate-700">Търсене</label>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Търси в заглавие и съдържание..."
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              />
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Content */}
-      {filteredTheory.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-slate-600 text-lg">
-            Няма налична теория за избрания филтър.
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left Column - Theory List */}
-          <div className="space-y-3">
-            <h2 className="text-lg font-semibold text-slate-800 mb-4">
-              Списък ({filteredTheory.length})
-            </h2>
-            <div className="space-y-3 max-h-[600px] overflow-y-auto">
-              {filteredTheory.map(item => (
-                <div
-                  key={item.id}
-                  className={`card cursor-pointer transition-all hover:shadow-md ${
-                    selectedId === item.id ? 'ring-2 ring-blue-500 bg-blue-50' : ''
-                  }`}
-                  onClick={() => handleTheorySelect(item.id)}
-                >
-                  <div className="card-content">
-                    <div className="flex items-start gap-3">
-                      {item.image && (
+        {/* Content */}
+        {filteredTheory.length === 0 ? (
+          <div className="bg-white rounded-xl p-12 text-center shadow-sm">
+            <div className="text-6xl mb-4">📚</div>
+            <h3 className="text-xl font-semibold text-slate-800 mb-2">Няма налична теория</h3>
+            <p className="text-slate-600">
+              Няма налична теория за избрания филтър. Опитайте да промените критериите за търсене.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {/* Left Column - Theory List */}
+            <div className="space-y-4">
+              <div className="bg-white rounded-xl p-4 shadow-sm">
+                <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                  <span>📖</span>
+                  Списък ({filteredTheory.length})
+                </h2>
+                <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-2">
+                  {filteredTheory.map(item => (
+                    <div
+                      key={item.id}
+                      className={`bg-white border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md hover:border-blue-300 ${
+                        selectedId === item.id 
+                          ? 'ring-2 ring-blue-500 border-blue-500 bg-blue-50' 
+                          : 'border-slate-200 hover:border-blue-300'
+                      }`}
+                      onClick={() => handleTheorySelect(item.id)}
+                    >
+                      <div className="flex items-start gap-3">
+                        {item.image && (
+                          <img
+                            src={item.image}
+                            alt={item.title}
+                            className="w-16 h-16 object-cover rounded-lg border flex-shrink-0"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                            }}
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-slate-800 mb-2 line-clamp-2 text-base">
+                            {item.title}
+                          </h3>
+                          <p className="text-sm text-slate-600 line-clamp-3 leading-relaxed">
+                            {item.content}
+                          </p>
+                          <div className="flex items-center gap-2 mt-3 text-xs">
+                            {item.classId && (
+                              <span className="bg-slate-100 text-slate-700 px-2 py-1 rounded-full font-medium">
+                                Клас {item.classId}
+                              </span>
+                            )}
+                            {item.lessonId && (
+                              <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
+                                Урок {item.lessonId}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column - Theory Detail */}
+            <div className="xl:sticky xl:top-4">
+              <div className="bg-white rounded-xl shadow-sm">
+                <div className="p-4 border-b border-slate-200">
+                  <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                    <span>📋</span>
+                    Детайли
+                  </h2>
+                </div>
+                
+                {selectedTheory ? (
+                  <div className="p-6">
+                    <h3 className="text-xl font-bold text-slate-800 mb-4 leading-tight">
+                      {selectedTheory.title}
+                    </h3>
+                    
+                    {selectedTheory.image && (
+                      <div className="mb-6">
                         <img
-                          src={item.image}
-                          alt={item.title}
-                          className="w-16 h-16 object-cover rounded-lg border flex-shrink-0"
+                          src={selectedTheory.image}
+                          alt={selectedTheory.title}
+                          className="w-full max-w-md mx-auto rounded-lg border shadow-sm"
                           onError={(e) => {
                             e.target.style.display = 'none';
                           }}
                         />
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-slate-800 mb-2 line-clamp-2">
-                          {item.title}
-                        </h3>
-                        <p className="text-sm text-slate-600 line-clamp-3">
-                          {item.content}
-                        </p>
-                        <div className="flex items-center gap-2 mt-2 text-xs text-slate-500">
-                          {item.classId && (
-                            <span className="bg-slate-100 px-2 py-1 rounded">
-                              Клас {item.classId}
-                            </span>
-                          )}
-                          {item.lessonId && (
-                            <span className="bg-blue-100 px-2 py-1 rounded">
-                              Урок {item.lessonId}
-                            </span>
-                          )}
-                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="prose prose-slate max-w-none">
+                      <div className="whitespace-pre-wrap text-slate-700 leading-relaxed text-base">
+                        {selectedTheory.content}
                       </div>
                     </div>
+                    
+                    <div className="flex items-center gap-2 mt-6 pt-4 border-t border-slate-200">
+                      {selectedTheory.classId && (
+                        <span className="bg-slate-100 text-slate-700 px-3 py-1 rounded-full text-sm font-medium">
+                          Клас {selectedTheory.classId}
+                        </span>
+                      )}
+                      {selectedTheory.lessonId && (
+                        <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">
+                          Урок {selectedTheory.lessonId}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ) : (
+                  <div className="p-12 text-center">
+                    <div className="text-4xl mb-4">🔍</div>
+                    <p className="text-slate-500 text-lg">
+                      Изберете теория от списъка за да видите детайлите
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-
-          {/* Right Column - Theory Detail */}
-          <div className="lg:sticky lg:top-4">
-            <h2 className="text-lg font-semibold text-slate-800 mb-4">Детайли</h2>
-            {selectedTheory ? (
-              <div className="card">
-                <div className="card-content">
-                  <h3 className="text-xl font-semibold text-slate-800 mb-4">
-                    {selectedTheory.title}
-                  </h3>
-                  
-                  {selectedTheory.image && (
-                    <div className="mb-4">
-                      <img
-                        src={selectedTheory.image}
-                        alt={selectedTheory.title}
-                        className="w-full max-w-md mx-auto rounded-lg border"
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                        }}
-                      />
-                    </div>
-                  )}
-                  
-                  <div className="prose prose-slate max-w-none">
-                    <div className="whitespace-pre-wrap text-slate-700 leading-relaxed">
-                      {selectedTheory.content}
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 mt-6 pt-4 border-t border-slate-200 text-sm text-slate-500">
-                    {selectedTheory.classId && (
-                      <span className="bg-slate-100 px-2 py-1 rounded">
-                        Клас {selectedTheory.classId}
-                      </span>
-                    )}
-                    {selectedTheory.lessonId && (
-                      <span className="bg-blue-100 px-2 py-1 rounded">
-                        Урок {selectedTheory.lessonId}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="card">
-                <div className="card-content text-center text-slate-500 py-12">
-                  Изберете теория от списъка
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
