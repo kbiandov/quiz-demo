@@ -39,7 +39,7 @@ export default function MathApp(){
 
   return (<div className="min-h-screen">
     <HeaderBar title={routeTitle(route)} profile={profile} onHome={()=>setRoute("home")} onLogout={resetProfile} onOpenSettings={()=>setSettingsOpen(true)} />
-    {route==="home" && <HomeScreen onGo={setRoute} />}
+    {route==="home" && <HomeScreen onGo={setRoute} profile={profile} />}
     {route==="theory" && <TheoryScreen />}
     {route==="tests" && (<TestsScreen profile={profile} lessons={lessons} classes={classes} questions={questions} onStartQuiz={(lesson,qs)=> setActiveQuiz({ lesson, questions: qs })} />)}
     {route==="results" && (<ResultsScreen results={results} classes={classes} lessons={lessons} canRestart={!!lastQuiz} onRestart={()=> lastQuiz && setActiveQuiz({ lesson: lastQuiz.lesson, questions: lastQuiz.questions })} />)}
