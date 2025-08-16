@@ -350,12 +350,9 @@ export default function TheoryScreen({ profile, theory = [], classes = [], lesso
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-slate-800 mb-2">
+                      <h3 className="text-lg font-semibold text-slate-800 mb-3">
                         {item.title}
                       </h3>
-                      <p className="text-slate-600 line-clamp-2 mb-3">
-                        {item.content}
-                      </p>
                       <div className="flex items-center gap-2">
                         {item.classId && (
                           <span className="bg-slate-100 text-slate-700 px-2 py-1 rounded-full text-xs font-medium">
