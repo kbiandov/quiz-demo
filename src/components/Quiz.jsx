@@ -13,6 +13,7 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
   const [timeLeft, setTimeLeft] = useState(() => {
     return (settings?.timeLimitMin || 0) * 60;
   });
+  const [adLeft, setAdLeft] = useState(0);
   
   const autoTimerRef = useRef(null);
   const AD_SECONDS = 5;
