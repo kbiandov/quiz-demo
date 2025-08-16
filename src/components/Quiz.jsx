@@ -35,6 +35,11 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
   useEffect(()=>{ if(!showConfirm) return; setAdLeft(AD_SECONDS); const tick=setInterval(()=>{ setAdLeft(s=>{ if(s<=1){ clearInterval(tick); return 0; } return s-1; }); },1000); return ()=>clearInterval(tick); },[showConfirm]);
 
   function choose(optKey){
+    // Only allow choosing if no answer has been selected yet
+    if (answers[current.id]) {
+      return; // Prevent changing answers
+    }
+    
     setAnswers(a=>({...a,[current.id]:optKey}));
     if (settings?.instantNext){
       if (autoTimerRef.current){ clearTimeout(autoTimerRef.current); autoTimerRef.current=null; }
@@ -42,8 +47,29 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
       autoTimerRef.current = setTimeout(()=>{ autoTimerRef.current=null; if(index<total-1){ setIndex(index+1);} else { setShowConfirm(true);} }, delayMs);
     }
   }
-  function computeScore(){ let correct=0; for(const q of qlist){ if((answers[q.id]||'').toUpperCase()===(q.__correctKey||'').toUpperCase()) correct++; } return {correct,total}; }
-  function submit(){ const {correct,total}=computeScore(); onFinish({ lesson, correct, total, answers, at:new Date().toISOString(), timeLimitMin: settings?.timeLimitMin }); }
+  
+  function computeScore(){ 
+    let correct=0; 
+    let wrong=0;
+    let unanswered=0;
+    
+    for(const q of qlist){ 
+      if(answers[q.id]){
+        if((answers[q.id]||'').toUpperCase()===(q.__correctKey||'').toUpperCase()) {
+          correct++;
+        } else {
+          wrong++;
+        }
+      } else {
+        unanswered++;
+      }
+    } 
+    return {correct, wrong, unanswered, total}; 
+  }
+  function submit(){ 
+    const {correct, wrong, unanswered, total} = computeScore(); 
+    onFinish({ lesson, correct, total, answers, at:new Date().toISOString(), timeLimitMin: settings?.timeLimitMin }); 
+  }
   if (!current) return <div className="p-6 text-center">Няма въпроси за този урок.</div>;
 
   const opts=current.__options; const hms=s=>`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
@@ -92,17 +118,26 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
       {/* Question Progress Indicator */}
       <div className="flex justify-center mt-2">
         <div className="flex space-x-1">
-          {Array.from({ length: total }, (_, i) => (
-            <div
-              key={i}
-              className={`w-2 h-2 rounded-full transition-colors ${
-                i < index ? 'bg-green-500' : 
-                i === index ? 'bg-blue-500' : 
-                'bg-slate-300'
-              }`}
-              title={`Въпрос ${i + 1}`}
-            />
-          ))}
+          {Array.from({ length: total }, (_, i) => {
+            const hasAnswer = answers[qlist[i]?.id];
+            const isAnswered = hasAnswer !== undefined;
+            const isCurrent = i === index;
+            const isCompleted = i < index;
+            
+            return (
+              <div
+                key={i}
+                className={`w-3 h-3 rounded-full transition-all duration-200 cursor-pointer ${
+                  isCompleted ? 'bg-green-500' : 
+                  isCurrent ? 'bg-blue-500' : 
+                  isAnswered ? 'bg-yellow-500' : 
+                  'bg-slate-300'
+                } ${isAnswered ? 'ring-2 ring-offset-1 ring-yellow-400' : ''}`}
+                title={`Въпрос ${i + 1}${isAnswered ? ' - Отговорен' : ''}`}
+                onClick={() => setIndex(i)}
+              />
+            );
+          })}
         </div>
       </div>
     </div>
@@ -111,8 +146,27 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
       <div className="text-lg font-medium mb-4">{current.text || current.question || current.title}</div>
       {current.image ? <img src={current.image} alt="Илюстрация" className="mb-4 rounded-lg border" /> : null}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {opts.map(o=>(<button type="button" key={o.key} className={`btn h-auto py-3 text-left ${chosen===o.key?(isCorrect?'':'btn-danger'):''}`} onClick={()=>choose(o.key)}>
-          <span className="font-semibold w-6 inline-block">{o.key}.</span><span className="ml-2">{o.text}</span></button>))}
+        {opts.map(o=>(
+          <button 
+            type="button" 
+            key={o.key} 
+            className={`btn h-auto py-3 text-left transition-all ${
+              chosen === o.key 
+                ? (isCorrect ? 'bg-green-100 border-green-300 text-green-800' : 'btn-danger') 
+                : 'hover:bg-slate-50'
+            } ${answers[current.id] ? 'cursor-default' : ''}`}
+            onClick={() => choose(o.key)}
+            disabled={answers[current.id] !== undefined}
+          >
+            <span className="font-semibold w-6 inline-block">{o.key}.</span>
+            <span className="ml-2">{o.text}</span>
+            {chosen === o.key && (
+              <span className="ml-2 text-sm">
+                {isCorrect ? '✓' : '✗'}
+              </span>
+            )}
+          </button>
+        ))}
       </div>
       {showExplain ? (<div className={`mt-4 text-sm ${isCorrect ? "text-green-700" : "text-red-700"}`}>{isCorrect ? "Вярно! " : "Грешно. "}<span className="text-slate-700">Обяснение: {current.explanation || "—"}</span></div>) : null}
     </div></div>
@@ -127,9 +181,34 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
         <div className="mb-3 p-3 rounded-lg border bg-slate-50 text-sm">Място за реклама или банер</div>
         <div className="mb-2 text-xs text-slate-500">Рекламна пауза: остава {adLeft} сек.</div>
         <div className="progress mb-3"><div style={{width:`${adProgress}%`}}/></div>
-        <div className="mt-1 mb-4 text-sm text-slate-700">Отговорени: <b>{Object.keys(answers).length}</b> · Пропуснати: <b>{total - Object.keys(answers).length}</b> · Общо: <b>{total}</b></div>
+        <div className="mt-1 mb-4 text-sm text-slate-700">
+          {(() => {
+            const {correct, wrong, unanswered} = computeScore();
+            return (
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-4 text-center">
+                  <div className="p-3 rounded-lg bg-green-50 border border-green-200">
+                    <div className="text-lg font-bold text-green-700">{correct}</div>
+                    <div className="text-xs text-green-600">Правилни</div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-red-50 border border-red-200">
+                    <div className="text-lg font-bold text-red-700">{wrong}</div>
+                    <div className="text-xs text-red-600">Грешни</div>
+                  </div>
+                </div>
+                <div className="text-center p-2 rounded-lg bg-slate-50 border border-slate-200">
+                  <div className="text-sm text-slate-600">
+                    Отговорени: <b>{correct + wrong}</b> · 
+                    Пропуснати: <b>{unanswered}</b> · 
+                    Общо: <b>{total}</b>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
         <div className="flex justify-end gap-2"><button type="button" className="btn" onClick={()=>{
-          const {correct,total} = computeScore();
+          const {correct,wrong,unanswered,total} = computeScore();
           onFinish({ lesson, correct, total, answers, at:new Date().toISOString(), timeLimitMin: settings?.timeLimitMin });
         }}>Предай</button></div>
       </div></div>)}
