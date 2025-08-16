@@ -145,10 +145,7 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
       {value:'by-lesson', label:'По тема / уроци', content:(
         <div>
           <h3 className="text-lg font-semibold mb-3">
-            {(() => {
-              const className = classList.find(c => c.id === currentClassId)?.name || "избрания клас";
-              return `Уроци за ${className}`;
-            })()}
+            {`Уроци за ${classList.find(c => c.id === currentClassId)?.name || "избрания клас"}`}
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {currentLessons.map(l => {

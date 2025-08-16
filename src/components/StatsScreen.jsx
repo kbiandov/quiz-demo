@@ -45,10 +45,7 @@ export default function StatsScreen(props) {
               />
             </div>
             <div className="text-center mt-2 text-sm opacity-90">
-              {(() => {
-                const progress = `${progressToNextLevel} / 100 точки`;
-                return progress;
-              })()}
+              {`${progressToNextLevel} / 100 точки`}
             </div>
           </div>
           

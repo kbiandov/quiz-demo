@@ -298,11 +298,7 @@ export default function TheoryScreen(props) {
             )}
 
             {/* Search Input */}
-            <div className={(() => {
-              const baseClasses = "space-y-2";
-              const spanClass = activeClassId && availableLessons.length > 0 ? 'sm:col-span-2' : 'sm:col-span-3';
-              return `${baseClasses} ${spanClass}`;
-            })()}>
+            <div className={`space-y-2 ${activeClassId && availableLessons.length > 0 ? 'sm:col-span-2' : 'sm:col-span-3'}`}>
               <label className="text-sm font-medium text-slate-700">Търсене</label>
               <input
                 type="text"
@@ -321,14 +317,10 @@ export default function TheoryScreen(props) {
             <div className="text-6xl mb-4">📚</div>
             <h3 className="text-xl font-semibold text-slate-800 mb-2">Няма налична теория</h3>
             <p className="text-slate-600 mb-4">
-              {activeClassId ? (
-                (() => {
-                  const message = `Няма налична теория за клас ${activeClassId}. Опитайте да промените филтъра за клас или да използвате търсенето.`;
-                  return message;
-                })()
-              ) : (
-                "Няма налична теория за избрания филтър."
-              )}
+              {activeClassId ? 
+                `Няма налична теория за клас ${activeClassId}. Опитайте да промените филтъра за клас или да използвате търсенето.`
+                : 'Няма налична теория за избрания филтър.'
+              }
             </p>
             {activeClassId && (
               <div className="mt-4">
