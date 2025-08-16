@@ -181,7 +181,11 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
   const handleHideConfirm = () => setShowConfirm(false);
   
   const handleFinishQuiz = () => {
-    const {correct, wrong, unanswered, total} = computeScore();
+    const score = computeScore();
+    const correct = score.correct;
+    const wrong = score.wrong;
+    const unanswered = score.unanswered;
+    const total = score.total;
     onFinish({ lesson, correct, wrong, unanswered, total, answers, at: new Date().toISOString(), timeLimitMin: settings?.timeLimitMin, qlist });
   };
 
@@ -206,7 +210,13 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
         <div className="flex items-center gap-4 text-sm text-slate-600">
           <div className="font-medium">Въпрос {index + 1} от {total}</div>
           {settings?.timeLimitMin ? (
-            <div className={`font-semibold ${timeLeft<=10?'text-red-600':''}`}>{hms(timeLeft)}</div>
+            <div className={(() => {
+              const baseClasses = "font-semibold";
+              const colorClass = timeLeft <= 10 ? 'text-red-600' : '';
+              return `${baseClasses} ${colorClass}`;
+            })()}>
+              {hms(timeLeft)}
+            </div>
           ) : null}
         </div>
       </div>
@@ -234,7 +244,12 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
         <span className="text-sm text-slate-600">
           {index === 0 ? 'Започваме!' : 
            isLastQuestion ? 'Последен въпрос!' : 
-           `Остават ${total - index - 1} въпроса`}
+           <div className="text-sm text-slate-500">
+            {(() => {
+              const remaining = total - index - 1;
+              return `Остават ${remaining} въпроса`;
+            })()}
+          </div>}
         </span>
       </div>
       
@@ -251,7 +266,11 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
                   : 'bg-slate-300 hover:bg-slate-400'
             }`;
             
-            const dotTitle = `Въпрос ${i + 1}${isAnswered ? ' - Отговорен' : ''}`;
+            const dotTitle = (() => {
+              const questionNumber = i + 1;
+              const answeredStatus = isAnswered ? ' - Отговорен' : '';
+              return `Въпрос ${questionNumber}${answeredStatus}`;
+            })();
             
             const handleClick = () => handleDotClick(i);
             
@@ -300,7 +319,16 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
           );
         })}
       </div>
-      {showExplain ? (<div className={`mt-4 text-sm ${isCorrect ? "text-green-700" : "text-red-700"}`}>{isCorrect ? "Вярно! " : "Грешно. "}<span className="text-slate-700">Обяснение: {current.explanation || "—"}</span></div>) : null}
+      {showExplain ? (
+        <div className={(() => {
+          const baseClasses = "mt-4 text-sm";
+          const colorClass = isCorrect ? "text-green-700" : "text-red-700";
+          return `${baseClasses} ${colorClass}`;
+        })()}>
+          {isCorrect ? "Вярно! " : "Грешно. "}
+          <span className="text-slate-700">Обяснение: {current.explanation || "—"}</span>
+        </div>
+      ) : null}
     </div></div>
     <div className="flex items-center justify-between">
       {index < total - 1 ? (
@@ -328,7 +356,9 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
           </div>
           <div className="mt-1 mb-4 text-sm text-slate-700">
             {(() => {
-              const {correct, wrong, unanswered} = computeScore();
+              const score = computeScore();
+              const correct = score.correct;
+              const wrong = score.wrong;
               return (
                 <div className="space-y-2">
                   <div className="grid grid-cols-2 gap-4 text-center">

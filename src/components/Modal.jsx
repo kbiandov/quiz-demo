@@ -71,7 +71,11 @@ export default function Modal({
     >
       <div 
         ref={modalRef}
-        className={`bg-white rounded-xl shadow-2xl w-full ${sizeClasses[size]} max-h-[90vh] overflow-hidden`}
+        className={(() => {
+          const baseClasses = "bg-white rounded-xl shadow-2xl w-full max-h-[90vh] overflow-hidden";
+          const sizeClass = sizeClasses[size];
+          return `${baseClasses} ${sizeClass}`;
+        })()}
         onClick={(e) => e.stopPropagation()}
         tabIndex={-1}
       >

@@ -3,7 +3,12 @@ import React from 'react';
 export default function ResultReview({ result, onRetakeTest }) {
   if (!result) return null;
 
-  const { lesson, correct, total, answers, at, questions } = result;
+  const lesson = result.lesson;
+  const correct = result.correct;
+  const total = result.total;
+  const answers = result.answers;
+  const at = result.at;
+  const questions = result.questions;
   const percentage = Math.round((correct / total) * 100);
   const date = new Date(at).toLocaleDateString('bg-BG', {
     year: 'numeric',

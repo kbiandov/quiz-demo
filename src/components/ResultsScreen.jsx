@@ -2,7 +2,14 @@ import React, { useState } from "react";
 import Modal from "./Modal";
 import ResultReview from "./ResultReview";
 
-export default function ResultsScreen({ results = [], classes = [], lessons = [], canRestart = false, onRestart }) {
+export default function ResultsScreen(props) {
+  const { 
+    results = [], 
+    classes = [], 
+    lessons = [], 
+    canRestart = false, 
+    onRestart 
+  } = props;
   const [activeResult, setActiveResult] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -90,7 +97,12 @@ export default function ResultsScreen({ results = [], classes = [], lessons = []
                       </p>
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-slate-500">
-                          {result.timeLimitMin ? `Време: ${result.timeLimitMin} мин` : 'Без време'}
+                          {(() => {
+                            if (result.timeLimitMin) {
+                              return `Време: ${result.timeLimitMin} мин`;
+                            }
+                            return 'Без време';
+                          })()}
                         </span>
                       </div>
                     </div>

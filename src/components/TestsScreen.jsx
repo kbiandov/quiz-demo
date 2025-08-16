@@ -142,7 +142,12 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
     <SimpleTabs defaultValue="by-lesson" tabs={[
       {value:'by-lesson', label:'По тема / уроци', content:(
         <div>
-          <h3 className="text-lg font-semibold mb-3">{`Уроци за ${classList.find(c=>c.id===currentClassId)?.name || "избрания клас"}`}</h3>
+          <h3 className="text-lg font-semibold mb-3">
+            {(() => {
+              const className = classList.find(c => c.id === currentClassId)?.name || "избрания клас";
+              return `Уроци за ${className}`;
+            })()}
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {currentLessons.map(l => {
               return renderLessonCard(l, true);

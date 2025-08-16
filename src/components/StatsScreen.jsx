@@ -1,7 +1,8 @@
 import React from "react";
 import { usePoints } from "../hooks/usePoints";
 
-export default function StatsScreen({ results = [] }) {
+export default function StatsScreen(props) {
+  const { results = [] } = props;
   const { points, level, progressToNextLevel, pointsToNextLevel, progressPercentage, resetPoints } = usePoints();
   
   const totalTests = results.length;
@@ -44,7 +45,10 @@ export default function StatsScreen({ results = [] }) {
               />
             </div>
             <div className="text-center mt-2 text-sm opacity-90">
-              {progressToNextLevel} / 100 точки
+              {(() => {
+                const progress = `${progressToNextLevel} / 100 точки`;
+                return progress;
+              })()}
             </div>
           </div>
           
