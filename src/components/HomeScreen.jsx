@@ -1,6 +1,3 @@
-import React from "react";
-import SquareButton from "./SquareButton";
-
 export default function HomeScreen({ onGo, profile }){
   const tiles = [
     {key:"theory", label:"Теория", icon:"📘"},
@@ -13,7 +10,8 @@ export default function HomeScreen({ onGo, profile }){
     <div className="mx-auto max-w-4xl p-6">
       <div className="user-info mb-4">
         <span>
-          Здравей, {profile?.name || "Гост"} · {profile?.classId ? `Клас: ${profile.classId}` : "Без клас"}
+          Здравей, {profile ? (profile.name || "Гост") : "Гост"} · 
+          {profile?.classId ? `Клас: ${profile.classId}` : "Без клас"}
         </span>
       </div>
       <div className="grid-tiles">
