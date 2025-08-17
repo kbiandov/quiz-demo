@@ -144,15 +144,17 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
             <h3 className="test-card__title text-lg font-semibold text-slate-800 mb-2">
               {lesson.title || lesson.name}
             </h3>
-            <div className="test-card__meta text-sm text-slate-600">
-              Въпроси: {currentCount} / {qs.length}
-            </div>
-            {isCompleted && (
-              <div className="flex items-center gap-1 text-green-600 text-sm mt-2">
-                <span className="text-lg">✓</span>
-                <span>Решаван</span>
+            <div className="flex items-center justify-between">
+              <div className="test-card__meta text-sm text-slate-600">
+                Въпроси: {currentCount} / {qs.length}
               </div>
-            )}
+              {isCompleted && (
+                <div className="flex items-center gap-1 text-green-600 text-sm">
+                  <span className="text-lg">✓</span>
+                  <span>Решаван</span>
+                </div>
+              )}
+            </div>
           </header>
           
           {/* Controls */}
