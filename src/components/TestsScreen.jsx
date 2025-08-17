@@ -117,9 +117,11 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
     
     // Helper function to format timer display
     const formatTimerDisplay = (seconds) => {
-      if (seconds < 60) return `${seconds} сек`;
-      if (seconds === 60) return '1 мин';
-      return `${Math.floor(seconds / 60)} мин`;
+      if (seconds < 60) return `${seconds} сек.`;
+      if (seconds === 60) return '1 мин.';
+      if (seconds === 120) return '2 мин.';
+      if (seconds === 180) return '3 мин.';
+      return `${Math.floor(seconds / 60)} мин.`;
     };
     
     if (!qs.length) {
@@ -184,11 +186,12 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
                 className="text-sm border border-slate-300 rounded px-2 py-1 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-0"
                 aria-label="Таймер"
               >
-                <option value="15">15 секунди</option>
-                <option value="30">30 секунди</option>
-                <option value="45">45 секунди</option>
-                <option value="60">1 минута</option>
-                <option value="120">2 минути</option>
+                <option value="15">15 сек.</option>
+                <option value="30">30 сек.</option>
+                <option value="45">45 сек.</option>
+                <option value="60">1 мин.</option>
+                <option value="120">2 мин.</option>
+                <option value="180">3 мин.</option>
               </select>
               
               {/* Timer Hint */}
