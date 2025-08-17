@@ -10,7 +10,7 @@ export default function Quiz({ lesson, questions, onFinish, settings }){
   const [explanationTimer, setExplanationTimer] = useState(null);
   const timeoutRef = useRef(null);
   const [showConfirm,setShowConfirm] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(settings?.timeLimitMin ? settings.timeLimitMin * 60 : 0);
+  const [timeLeft, setTimeLeft] = useState(settings?.timeLimitMin ? settings.timeLimitMin : 0);
   const [adLeft, setAdLeft] = useState(0);
   
   const autoTimerRef = useRef(null);

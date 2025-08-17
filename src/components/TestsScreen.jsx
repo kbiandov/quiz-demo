@@ -75,7 +75,7 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
   const handleStartQuiz = (lesson, allQuestions) => {
     const lessonId = lesson.id || lesson.lesson_id;
     const selectedCount = questionCounts[lessonId] || allQuestions.length;
-    const selectedTimer = timerDurations[lessonId] || 8; // Default to 8 minutes if not selected
+    const selectedTimer = timerDurations[lessonId] || 60; // Default to 1 minute if not selected
     
     let limitedQs = allQuestions;
     if (selectedCount < allQuestions.length) {
@@ -101,11 +101,19 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
     const qs = listQuestionsForLesson(lesson.id);
     const lessonId = normalizeId(lesson.id);
     const currentCount = questionCounts[lessonId] || qs.length;
-    const currentTimer = timerDurations[lessonId] || 8; // Default to 8 minutes
+    const currentTimer = timerDurations[lessonId] || 60; // Default to 1 minute
     
     const handleStartClick = () => handleStartQuiz(lesson, qs);
     const handleCountChange = (e) => handleQuestionCountChange(lessonId, parseInt(e.target.value));
     const handleTimerChange = (e) => handleTimerDurationChange(lessonId, e.target.value);
+    
+    // Helper function to format timer display
+    const formatTimerDisplay = (seconds) => {
+      if (!seconds) return 'Без ограничение';
+      if (seconds < 60) return `${seconds} сек`;
+      if (seconds === 60) return '1 мин';
+      return `${Math.floor(seconds / 60)} мин`;
+    };
     
     if (!qs.length) {
       return (
@@ -172,7 +180,7 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
             {/* Timer Duration Selection */}
             <div className="flex items-center justify-between">
               <div className="text-xs text-slate-600">
-                Време: {currentTimer ? `${currentTimer} мин` : 'Без ограничение'}
+                Време: {formatTimerDisplay(currentTimer)}
               </div>
               <div className="flex items-center gap-2">
                 <label className="text-xs text-slate-600">Таймер:</label>
@@ -182,14 +190,15 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
                   className="text-xs border border-slate-300 rounded px-2 py-1 bg-white"
                 >
                   <option value="no-limit">Без ограничение</option>
-                  <option value="5">5 минути</option>
-                  <option value="10">10 минути</option>
-                  <option value="15">15 минути</option>
-                  <option value="20">20 минути</option>
-                  <option value="30">30 минути</option>
-                  <option value="45">45 минути</option>
-                  <option value="60">1 час</option>
+                  <option value="15">15 секунди</option>
+                  <option value="30">30 секунди</option>
+                  <option value="45">45 секунди</option>
+                  <option value="60">1 минута</option>
+                  <option value="120">2 минути</option>
                 </select>
+                <span className="text-xs text-slate-500">
+                  ({formatTimerDisplay(currentTimer)})
+                </span>
               </div>
             </div>
           </div>

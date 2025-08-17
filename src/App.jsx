@@ -31,7 +31,7 @@ export default function MathApp(){
   const [activeQuiz,setActiveQuiz] = useState(null);
   const [settingsOpen,setSettingsOpen] = useState(false);
   const [lastQuiz,setLastQuiz] = useState(null);
-  const [settings,setSettings] = useLocalStorage(STORAGE_KEYS.settings, { showExplanation:true, shuffleQuestions:true, shuffleOptions:true, timeLimitMin:8, instantNext:false, instantDelaySec:4 });
+  const [settings,setSettings] = useLocalStorage(STORAGE_KEYS.settings, { showExplanation:true, shuffleQuestions:true, shuffleOptions:true, timeLimitMin:60, instantNext:false, instantDelaySec:4 });
 
   useEffect(()=>{ if(!profile && !loading) setRoute("onboarding"); },[profile,loading]);
 

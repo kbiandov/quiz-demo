@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 
 export default function TheoryModal({ isOpen, onClose, theoryItem, onStartTest, lesson }) {
-  const [selectedTimer, setSelectedTimer] = useState(8); // Default to 8 minutes
+  const [selectedTimer, setSelectedTimer] = useState(60); // Default to 1 minute
   
   if (!isOpen || !theoryItem) return null;
 
@@ -29,6 +29,14 @@ export default function TheoryModal({ isOpen, onClose, theoryItem, onStartTest, 
 
   const handleTimerChange = (e) => {
     setSelectedTimer(e.target.value === 'no-limit' ? null : parseInt(e.target.value));
+  };
+
+  // Helper function to format timer display
+  const formatTimerDisplay = (seconds) => {
+    if (!seconds) return 'Без ограничение';
+    if (seconds < 60) return `${seconds} секунди`;
+    if (seconds === 60) return '1 минута';
+    return `${Math.floor(seconds / 60)} минути`;
   };
 
   return (
@@ -99,14 +107,15 @@ export default function TheoryModal({ isOpen, onClose, theoryItem, onStartTest, 
                 className="text-sm border border-slate-300 rounded px-3 py-1 bg-white"
               >
                 <option value="no-limit">Без ограничение</option>
-                <option value="5">5 минути</option>
-                <option value="10">10 минути</option>
-                <option value="15">15 минути</option>
-                <option value="20">20 минути</option>
-                <option value="30">30 минути</option>
-                <option value="45">45 минути</option>
-                <option value="60">1 час</option>
+                <option value="15">15 секунди</option>
+                <option value="30">30 секунди</option>
+                <option value="45">45 секунди</option>
+                <option value="60">1 минута</option>
+                <option value="120">2 минути</option>
               </select>
+              <span className="text-sm text-slate-500">
+                ({formatTimerDisplay(selectedTimer)})
+              </span>
             </div>
           </div>
           

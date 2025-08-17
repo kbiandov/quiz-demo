@@ -139,7 +139,14 @@ export default function ResultsScreen(props) {
                       </p>
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-slate-500">
-                          {result.timeLimitMin ? `Време: ${result.timeLimitMin} мин` : 'Без време'}
+                          {result.timeLimitMin ? (
+                            (() => {
+                              const seconds = result.timeLimitMin;
+                              if (seconds < 60) return `Време: ${seconds} сек`;
+                              if (seconds === 60) return 'Време: 1 мин';
+                              return `Време: ${Math.floor(seconds / 60)} мин`;
+                            })()
+                          ) : 'Без време'}
                         </span>
                         {result.questions && result.questions.length > 0 && (
                           <span className="text-sm text-slate-500">
