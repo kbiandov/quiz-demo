@@ -8,6 +8,7 @@ import ResultsScreen from "./components/ResultsScreen";
 import StatsScreen from "./components/StatsScreen";
 import TestsScreen from "./components/TestsScreen";
 import SettingsModal from "./components/SettingsModal";
+import ChangeUserConfirmModal from "./components/ChangeUserConfirmModal";
 import { routeTitle } from "./utils";
 import useLocalStorage from "./hooks/useLocalStorage";
 import { STORAGE_KEYS } from "./constants";
@@ -33,6 +34,7 @@ export default function MathApp(){
   const [settingsOpen,setSettingsOpen] = useState(false);
   const [lastQuiz,setLastQuiz] = useState(null);
   const [settings,setSettings] = useLocalStorage(STORAGE_KEYS.settings, { showExplanation:true, shuffleQuestions:true, shuffleOptions:true, timeLimitMin:60, instantNext:false, instantDelaySec:4 });
+  const [changeUserConfirmOpen, setChangeUserConfirmOpen] = useState(false);
 
   useEffect(()=>{ if(!profile && !loading) setRoute("onboarding"); },[profile,loading]);
 
@@ -109,14 +111,34 @@ export default function MathApp(){
   const handleOnboardingDone = (p) => { setProfile(p); setRoute("home"); };
   const handleReload = () => location.reload();
   const handleCloseSettings = () => setSettingsOpen(false);
+  const handleChangeUserConfirm = (resetPoints) => {
+    if (resetPoints) {
+      // Reset points and related data for current user
+      localStorage.removeItem(STORAGE_KEYS.points);
+      localStorage.removeItem(STORAGE_KEYS.results);
+      // Note: We don't clear settings as they might be useful for the new user
+    }
+    
+    // Clear current profile and navigate to onboarding
+    setProfile(null);
+    setCompletedTests([]);
+    setRoute("onboarding");
+    setChangeUserConfirmOpen(false);
+  };
+  const handleCancelChangeUser = () => {
+    setChangeUserConfirmOpen(false);
+  };
+  const handleOpenChangeUserConfirm = () => {
+    setChangeUserConfirmOpen(true);
+  };
   
   if (route==="onboarding" || !profile) return <Onboarding classes={classes} onDone={handleOnboardingDone} />;
   if (activeQuiz) return (<div className="min-h-screen bg-slate-50">
-    <HeaderBar title="Тест" profile={profile} onHome={handleQuizHome} onLogout={resetProfile} onOpenSettings={handleOpenSettings} />
+    <HeaderBar title="Тест" profile={profile} onHome={handleQuizHome} onLogout={handleOpenChangeUserConfirm} onOpenSettings={handleOpenSettings} />
     <Quiz lesson={activeQuiz.lesson} questions={activeQuiz.questions} onFinish={handleFinishQuiz} settings={activeQuiz.settings || settings} />
   </div>);
   if (route==="quiz" && activeQuiz) return (<div className="min-h-screen bg-slate-50">
-    <HeaderBar title="Тест" profile={profile} onHome={handleRouteHome} onLogout={resetProfile} onOpenSettings={handleOpenSettings} />
+    <HeaderBar title="Тест" profile={profile} onHome={handleRouteHome} onLogout={handleOpenChangeUserConfirm} onOpenSettings={handleOpenSettings} />
     <Quiz lesson={activeQuiz.lesson} questions={activeQuiz.questions} onFinish={handleFinishQuiz} settings={activeQuiz.settings || settings} />
   </div>);
 
@@ -126,7 +148,7 @@ export default function MathApp(){
          </button></div></div>);
 
   return (<div className="min-h-screen">
-    <HeaderBar title={routeTitle(route)} profile={profile} onHome={handleRouteHome} onLogout={resetProfile} onOpenSettings={handleOpenSettings} />
+    <HeaderBar title={routeTitle(route)} profile={profile} onHome={handleRouteHome} onLogout={handleOpenChangeUserConfirm} onOpenSettings={handleOpenSettings} />
     {route==="home" && <HomeScreen onGo={setRoute} profile={profile} />}
     {route==="theory" && <TheoryScreen profile={profile} theory={theory} classes={classes} lessons={lessons} questions={questions} onStartQuiz={handleTheoryStartQuiz} />}
     {route==="tests" && (<TestsScreen 
@@ -153,6 +175,13 @@ export default function MathApp(){
         onClose={handleCloseSettings}
         settings={settings}
         onSave={setSettings}
+      />
+    )}
+    {changeUserConfirmOpen && (
+      <ChangeUserConfirmModal
+        isOpen={changeUserConfirmOpen}
+        onConfirm={handleChangeUserConfirm}
+        onClose={handleCancelChangeUser}
       />
     )}
   </div>);
