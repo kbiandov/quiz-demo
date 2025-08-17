@@ -189,9 +189,9 @@ export default function TheoryScreen(props) {
   }, [lessons]);
 
   // Handle start test - fix the question filtering logic
-  const handleStartTest = useCallback((lesson) => {
+  const handleStartTest = useCallback((lesson, quizSettings) => {
     if (lesson && onStartQuiz) {
-      console.log('Starting test for lesson:', lesson);
+      console.log('Starting test for lesson:', lesson, 'with settings:', quizSettings);
       
       // Find questions for this lesson
       const lessonQuestions = questions.filter(q => {
@@ -205,7 +205,8 @@ export default function TheoryScreen(props) {
       
       if (lessonQuestions.length > 0) {
         console.log('Starting test for lesson:', lesson, 'with', lessonQuestions.length, 'questions');
-        onStartQuiz(lesson, lessonQuestions);
+        // Pass the quiz settings along with the lesson and questions
+        onStartQuiz(lesson, lessonQuestions, quizSettings);
       } else {
         console.warn('No questions found for lesson:', lesson);
         // Show user-friendly message

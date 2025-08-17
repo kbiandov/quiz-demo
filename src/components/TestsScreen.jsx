@@ -5,7 +5,6 @@ function SimpleTabs({ defaultValue, tabs }){
   const [val, setVal] = useState(defaultValue || (tabs[0] && tabs[0].value));
   
   const handleTabClick = (tabValue) => setVal(tabValue);
-  const handleStartQuizClick = (lesson, qs) => handleStartQuiz(lesson, qs);
   
   return (<div>
     <div className="grid grid-cols-2 w-full gap-2">
@@ -29,6 +28,7 @@ function SimpleTabs({ defaultValue, tabs }){
 
 export default function TestsScreen({ profile, lessons, classes, questions, onStartQuiz }){
   const [questionCounts, setQuestionCounts] = useState({});
+  const [timerDurations, setTimerDurations] = useState({});
   
   const lessonsByClass = useMemo(() => {
     const grouped = {};
@@ -49,10 +49,14 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
       return { id, name };
     });
   }, [classes]);
+  
   const currentClassId = profile?.classId;
   const currentLessons = lessonsByClass[currentClassId] || [];
   
-  function listQuestionsForLesson(lessonId){ const lid=normalizeId(lessonId); return questions.filter(q=> normalizeId(q.lesson_id||q.lessonId||q.lesson)===lid); }
+  function listQuestionsForLesson(lessonId){ 
+    const lid = normalizeId(lessonId); 
+    return questions.filter(q => normalizeId(q.lesson_id || q.lessonId || q.lesson) === lid); 
+  }
   
   const handleQuestionCountChange = (lessonId, value) => {
     setQuestionCounts(prev => ({
@@ -61,9 +65,17 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
     }));
   };
   
+  const handleTimerDurationChange = (lessonId, value) => {
+    setTimerDurations(prev => ({
+      ...prev,
+      [lessonId]: value === 'no-limit' ? null : parseInt(value)
+    }));
+  };
+  
   const handleStartQuiz = (lesson, allQuestions) => {
     const lessonId = lesson.id || lesson.lesson_id;
     const selectedCount = questionCounts[lessonId] || allQuestions.length;
+    const selectedTimer = timerDurations[lessonId] || 8; // Default to 8 minutes if not selected
     
     let limitedQs = allQuestions;
     if (selectedCount < allQuestions.length) {
@@ -72,16 +84,28 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
       limitedQs = shuffled.slice(0, selectedCount);
     }
     
-    onStartQuiz(lesson, limitedQs);
+    // Pass the selected timer duration along with the quiz data
+    const quizSettings = {
+      timeLimitMin: selectedTimer,
+      showExplanation: true,
+      shuffleQuestions: true,
+      shuffleOptions: true,
+      instantNext: false,
+      instantDelaySec: 4
+    };
+    
+    onStartQuiz(lesson, limitedQs, quizSettings);
   };
   
   function renderLessonCard(lesson, isCurrentClass = false) {
     const qs = listQuestionsForLesson(lesson.id);
     const lessonId = normalizeId(lesson.id);
     const currentCount = questionCounts[lessonId] || qs.length;
+    const currentTimer = timerDurations[lessonId] || 8; // Default to 8 minutes
     
     const handleStartClick = () => handleStartQuiz(lesson, qs);
     const handleCountChange = (e) => handleQuestionCountChange(lessonId, parseInt(e.target.value));
+    const handleTimerChange = (e) => handleTimerDurationChange(lessonId, e.target.value);
     
     if (!qs.length) {
       return (
@@ -111,34 +135,62 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
               Старт
             </button>
           </div>
-          <div className="flex items-center justify-between">
-            <div className="text-xs text-slate-500">
-              Въпроси: {currentCount} / {qs.length}
+          
+          <div className="space-y-3">
+            {/* Question Count Selection */}
+            <div className="flex items-center justify-between">
+              <div className="text-xs text-slate-600">
+                Въпроси: {currentCount} / {qs.length}
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-slate-600">Брой:</label>
+                <select
+                  value={currentCount}
+                  onChange={handleCountChange}
+                  className="text-xs border border-slate-300 rounded px-2 py-1 bg-white"
+                >
+                  {qs.length <= 5 ? (
+                    Array.from({ length: qs.length }, (unused, i) => i + 1).map(count => {
+                      return <option key={count} value={count}>{count}</option>;
+                    })
+                  ) : (
+                    // If more than 5 questions, show common options + "All"
+                    <>
+                      <option value={qs.length}>Всички ({qs.length})</option>
+                      <option value={5}>5</option>
+                      <option value={10}>10</option>
+                      <option value={15}>15</option>
+                      <option value={20}>20</option>
+                      {qs.length > 25 && <option value={25}>25</option>}
+                      {qs.length > 30 && <option value={30}>30</option>}
+                    </>
+                  )}
+                </select>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <label className="text-xs text-slate-600">Брой:</label>
-              <select
-                value={currentCount}
-                onChange={handleCountChange}
-                className="text-xs border border-slate-300 rounded px-2 py-1 bg-white"
-              >
-                {qs.length <= 5 ? (
-                  Array.from({ length: qs.length }, (unused, i) => i + 1).map(count => {
-                    return <option key={count} value={count}>{count}</option>;
-                  })
-                ) : (
-                  // If more than 5 questions, show common options + "All"
-                  <>
-                    <option value={qs.length}>Всички ({qs.length})</option>
-                    <option value={5}>5</option>
-                    <option value={10}>10</option>
-                    <option value={15}>15</option>
-                    <option value={20}>20</option>
-                    {qs.length > 25 && <option value={25}>25</option>}
-                    {qs.length > 30 && <option value={30}>30</option>}
-                  </>
-                )}
-              </select>
+            
+            {/* Timer Duration Selection */}
+            <div className="flex items-center justify-between">
+              <div className="text-xs text-slate-600">
+                Време: {currentTimer ? `${currentTimer} мин` : 'Без ограничение'}
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-slate-600">Таймер:</label>
+                <select
+                  value={currentTimer || 'no-limit'}
+                  onChange={handleTimerChange}
+                  className="text-xs border border-slate-300 rounded px-2 py-1 bg-white"
+                >
+                  <option value="no-limit">Без ограничение</option>
+                  <option value="5">5 минути</option>
+                  <option value="10">10 минути</option>
+                  <option value="15">15 минути</option>
+                  <option value="20">20 минути</option>
+                  <option value="30">30 минути</option>
+                  <option value="45">45 минути</option>
+                  <option value="60">1 час</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>

@@ -75,8 +75,22 @@ export default function MathApp(){
   
   function resetProfile(){ setProfile(null); setRoute("onboarding"); }
 
-  const handleTheoryStartQuiz = (lesson, questions) => setActiveQuiz({ lesson, questions });
-  const handleTestsStartQuiz = (lesson, qs) => setActiveQuiz({ lesson, questions: qs });
+  const handleTheoryStartQuiz = (lesson, questions, quizSettings) => {
+    // Store the quiz with its specific settings
+    setActiveQuiz({ 
+      lesson, 
+      questions, 
+      settings: quizSettings || settings // Use provided settings or fallback to global settings
+    });
+  };
+  const handleTestsStartQuiz = (lesson, qs, quizSettings) => {
+    // Store the quiz with its specific settings
+    setActiveQuiz({ 
+      lesson, 
+      questions: qs, 
+      settings: quizSettings || settings // Use provided settings or fallback to global settings
+    });
+  };
   const handleResultsRestart = () => lastQuiz && handleRetakeTest(lastQuiz.lesson, lastQuiz.questions);
   const handleQuizHome = () => setActiveQuiz(null);
   const handleRouteHome = () => setRoute("home");
@@ -88,11 +102,11 @@ export default function MathApp(){
   if (route==="onboarding" || !profile) return <Onboarding classes={classes} onDone={handleOnboardingDone} />;
   if (activeQuiz) return (<div className="min-h-screen bg-slate-50">
     <HeaderBar title="Тест" profile={profile} onHome={handleQuizHome} onLogout={resetProfile} onOpenSettings={handleOpenSettings} />
-    <Quiz lesson={activeQuiz.lesson} questions={activeQuiz.questions} onFinish={handleFinishQuiz} settings={settings} />
+    <Quiz lesson={activeQuiz.lesson} questions={activeQuiz.questions} onFinish={handleFinishQuiz} settings={activeQuiz.settings || settings} />
   </div>);
   if (route==="quiz" && activeQuiz) return (<div className="min-h-screen bg-slate-50">
     <HeaderBar title="Тест" profile={profile} onHome={handleRouteHome} onLogout={resetProfile} onOpenSettings={handleOpenSettings} />
-    <Quiz lesson={activeQuiz.lesson} questions={activeQuiz.questions} onFinish={handleFinishQuiz} settings={settings} />
+    <Quiz lesson={activeQuiz.lesson} questions={activeQuiz.questions} onFinish={handleFinishQuiz} settings={activeQuiz.settings || settings} />
   </div>);
 
   if (loading) return (<div className="min-h-screen grid place-items-center"><div className="text-center"><div className="animate-pulse text-2xl font-semibold">Зареждаме данните…</div><div className="text-sm text-slate-500 mt-2">Google Sheets CSV</div></div></div>);

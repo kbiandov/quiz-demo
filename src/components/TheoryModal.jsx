@@ -1,17 +1,34 @@
-import React from "react";
+import React, { useState } from "react";
 
 export default function TheoryModal({ isOpen, onClose, theoryItem, onStartTest, lesson }) {
+  const [selectedTimer, setSelectedTimer] = useState(8); // Default to 8 minutes
+  
   if (!isOpen || !theoryItem) return null;
 
   const handleStartTest = () => {
-    if (onStartQuiz && lesson) {
-      onStartQuiz(lesson, questions);
+    if (onStartTest && lesson) {
+      // Create quiz settings with the selected timer
+      const quizSettings = {
+        timeLimitMin: selectedTimer,
+        showExplanation: true,
+        shuffleQuestions: true,
+        shuffleOptions: true,
+        instantNext: false,
+        instantDelaySec: 4
+      };
+      
+      // Pass the quiz settings along with the lesson
+      onStartTest(lesson, quizSettings);
     }
   };
 
   const handleStartTestAndClose = () => {
-    onStartTest(lesson);
+    handleStartTest();
     onClose();
+  };
+
+  const handleTimerChange = (e) => {
+    setSelectedTimer(e.target.value === 'no-limit' ? null : parseInt(e.target.value));
   };
 
   return (
@@ -66,11 +83,33 @@ export default function TheoryModal({ isOpen, onClose, theoryItem, onStartTest, 
           </div>
         </div>
 
-        {/* Footer with Start Test Button */}
+        {/* Footer with Timer Selection and Start Test Button */}
         <div className="flex items-center justify-between p-6 border-t border-slate-200 bg-slate-50">
-          <div className="text-sm text-slate-600">
-            Готови ли сте да тествате знанията си?
+          <div className="flex items-center gap-4">
+            <div className="text-sm text-slate-600">
+              Готови ли сте да тествате знанията си?
+            </div>
+            
+            {/* Timer Selection */}
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-slate-600">Време за теста:</label>
+              <select
+                value={selectedTimer || 'no-limit'}
+                onChange={handleTimerChange}
+                className="text-sm border border-slate-300 rounded px-3 py-1 bg-white"
+              >
+                <option value="no-limit">Без ограничение</option>
+                <option value="5">5 минути</option>
+                <option value="10">10 минути</option>
+                <option value="15">15 минути</option>
+                <option value="20">20 минути</option>
+                <option value="30">30 минути</option>
+                <option value="45">45 минути</option>
+                <option value="60">1 час</option>
+              </select>
+            </div>
           </div>
+          
           <div className="flex gap-3">
             <button
               onClick={onClose}
