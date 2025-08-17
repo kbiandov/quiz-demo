@@ -75,7 +75,7 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
   const handleTimerDurationChange = (lessonId, value) => {
     setTimerDurations(prev => ({
       ...prev,
-      [lessonId]: value === 'no-limit' ? null : parseInt(value)
+      [lessonId]: value === 'no-limit' ? 0 : parseInt(value)
     }));
   };
   
@@ -93,7 +93,7 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
     
     // Pass the selected timer duration along with the quiz data
     const quizSettings = {
-      timeLimitMin: selectedTimer,
+      timeLimitMin: selectedTimer === 0 ? null : selectedTimer, // null for unlimited
       showExplanation: true,
       shuffleQuestions: true,
       shuffleOptions: true,
@@ -117,7 +117,7 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
     
     // Helper function to format timer display
     const formatTimerDisplay = (seconds) => {
-      if (!seconds) return 'Без ограничение';
+      if (!seconds || seconds === 0) return 'Без ограничение';
       if (seconds < 60) return `${seconds} сек`;
       if (seconds === 60) return '1 мин';
       return `${Math.floor(seconds / 60)} мин`;
@@ -138,88 +138,109 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
     }
     
     return (
-      <div key={lessonId} className={`card hover:shadow-md transition ${isCompleted ? 'bg-green-50 border-green-200' : ''}`}>
+      <article key={lessonId} className={`card hover:shadow-md transition ${isCompleted ? 'bg-green-50 border-green-200' : ''}`}>
         <div className="card-content">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <div className="font-medium">{lesson.title || lesson.name}</div>
-              {isCompleted && (
-                <div className="flex items-center gap-1 text-green-600 text-sm">
-                  <span className="text-lg">✓</span>
-                  <span>Решаван</span>
-                </div>
-              )}
+          {/* Header */}
+          <header className="test-card__header mb-3">
+            <h3 className="test-card__title text-lg font-semibold text-slate-800 mb-2">
+              {lesson.title || lesson.name}
+            </h3>
+            <div className="test-card__meta text-sm text-slate-600">
+              Въпроси: {currentCount} / {qs.length}
             </div>
+            {isCompleted && (
+              <div className="flex items-center gap-1 text-green-600 text-sm mt-2">
+                <span className="text-lg">✓</span>
+                <span>Решаван</span>
+              </div>
+            )}
+          </header>
+          
+          {/* Controls */}
+          <div className="test-card__controls flex items-center gap-3 sm:gap-4 flex-wrap">
+            {/* Timer Section */}
+            <div className="test-card__timer inline-flex items-center gap-2 min-w-0 flex-shrink-0 order-1">
+              {/* Timer Icon */}
+              <svg 
+                className="w-4 h-4 text-slate-500 flex-shrink-0" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" 
+                />
+              </svg>
+              
+              {/* Timer Dropdown */}
+              <select
+                value={currentTimer === 0 ? 'no-limit' : currentTimer}
+                onChange={handleTimerChange}
+                className="text-sm border border-slate-300 rounded px-2 py-1 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-0"
+                aria-label="Таймер"
+              >
+                <option value="no-limit">Без ограничение</option>
+                <option value="15">15 секунди</option>
+                <option value="30">30 секунди</option>
+                <option value="45">45 секунди</option>
+                <option value="60">1 минута</option>
+                <option value="120">2 минути</option>
+              </select>
+              
+              {/* Timer Hint */}
+              <span className="test-card__timer-hint text-sm text-slate-500 flex-shrink-0">
+                ({formatTimerDisplay(currentTimer)})
+              </span>
+            </div>
+            
+            {/* Question Count Section */}
+            <div className="test-card__count inline-flex items-center gap-2 min-w-0 flex-shrink-0 order-2">
+              <label className="test-card__count-label text-sm text-slate-600 font-medium flex-shrink-0">
+                Брой:
+              </label>
+              <select
+                value={currentCount}
+                onChange={handleCountChange}
+                className="text-sm border border-slate-300 rounded px-2 py-1 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-0"
+                aria-label="Брой въпроси"
+              >
+                {qs.length <= 5 ? (
+                  Array.from({ length: qs.length }, (unused, i) => i + 1).map(count => {
+                    return <option key={count} value={count}>{count}</option>;
+                  })
+                ) : (
+                  // If more than 5 questions, show common options + "All"
+                  <>
+                    <option value={qs.length}>Всички ({qs.length})</option>
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={15}>15</option>
+                    <option value={20}>20</option>
+                    {qs.length > 25 && <option value={25}>25</option>}
+                    {qs.length > 30 && <option value={30}>30</option>}
+                  </>
+                )}
+              </select>
+            </div>
+          </div>
+          
+          {/* Footer */}
+          <footer className="test-card__footer mt-4">
             <button 
               type="button" 
-              className={`btn ${isCompleted ? 'btn-secondary' : 'btn-primary'}`}
+              className={`btn w-full ${isCompleted ? 'btn-secondary' : 'btn-primary'}`}
               onClick={handleStartClick}
               disabled={!qs.length}
             >
-              {isCompleted ? 'Повтори' : 'Старт'}
+              {isCompleted ? 'Повтори теста' : 'Започни теста'}
             </button>
-          </div>
-          
-          <div className="space-y-3">
-            {/* Question Count Selection */}
-            <div className="flex items-center justify-between">
-              <div className="text-xs text-slate-600">
-                Въпроси: {currentCount} / {qs.length}
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="text-xs text-slate-600">Брой:</label>
-                <select
-                  value={currentCount}
-                  onChange={handleCountChange}
-                  className="text-xs border border-slate-300 rounded px-2 py-1 bg-white"
-                >
-                  {qs.length <= 5 ? (
-                    Array.from({ length: qs.length }, (unused, i) => i + 1).map(count => {
-                      return <option key={count} value={count}>{count}</option>;
-                    })
-                  ) : (
-                    // If more than 5 questions, show common options + "All"
-                    <>
-                      <option value={qs.length}>Всички ({qs.length})</option>
-                      <option value={5}>5</option>
-                      <option value={10}>10</option>
-                      <option value={15}>15</option>
-                      <option value={20}>20</option>
-                      {qs.length > 25 && <option value={25}>25</option>}
-                      {qs.length > 30 && <option value={30}>30</option>}
-                    </>
-                  )}
-                </select>
-              </div>
-            </div>
-            
-            {/* Timer Duration Selection */}
-            <div className="flex items-center justify-between">
-              <div className="text-xs text-slate-600">
-                Време: {formatTimerDisplay(currentTimer)}
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="text-xs text-slate-600">Таймер:</label>
-                <select
-                  value={currentTimer || 'no-limit'}
-                  onChange={handleTimerChange}
-                  className="text-xs border border-slate-300 rounded px-2 py-1 bg-white"
-                >
-                  <option value="no-limit">Без ограничение</option>
-                  <option value="15">15 секунди</option>
-                  <option value="30">30 секунди</option>
-                  <option value="45">45 секунди</option>
-                  <option value="60">1 минута</option>
-                  <option value="120">2 минути</option>
-                </select>
-                <span className="text-xs text-slate-500">
-                  ({formatTimerDisplay(currentTimer)})
-                </span>
-              </div>
-            </div>
-          </div>
+          </footer>
         </div>
-      </div>
+      </article>
     );
   }
   
