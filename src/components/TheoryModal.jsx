@@ -28,15 +28,16 @@ export default function TheoryModal({ isOpen, onClose, theoryItem, onStartTest, 
   };
 
   const handleTimerChange = (e) => {
-    setSelectedTimer(e.target.value === 'no-limit' ? null : parseInt(e.target.value));
+    setSelectedTimer(parseInt(e.target.value));
   };
 
   // Helper function to format timer display
   const formatTimerDisplay = (seconds) => {
-    if (!seconds) return 'Без ограничение';
-    if (seconds < 60) return `${seconds} секунди`;
-    if (seconds === 60) return '1 минута';
-    return `${Math.floor(seconds / 60)} минути`;
+    if (seconds < 60) return `${seconds} сек.`;
+    if (seconds === 60) return '1 мин.';
+    if (seconds === 120) return '2 мин.';
+    if (seconds === 180) return '3 мин.';
+    return `${Math.floor(seconds / 60)} мин.`;
   };
 
   return (
@@ -102,16 +103,16 @@ export default function TheoryModal({ isOpen, onClose, theoryItem, onStartTest, 
             <div className="flex items-center gap-2">
               <label className="text-sm text-slate-600">Време за теста:</label>
               <select
-                value={selectedTimer || 'no-limit'}
+                value={selectedTimer}
                 onChange={handleTimerChange}
                 className="text-sm border border-slate-300 rounded px-3 py-1 bg-white"
               >
-                <option value="no-limit">Без ограничение</option>
-                <option value="15">15 секунди</option>
-                <option value="30">30 секунди</option>
-                <option value="45">45 секунди</option>
-                <option value="60">1 минута</option>
-                <option value="120">2 минути</option>
+                <option value="15">15 сек.</option>
+                <option value="30">30 сек.</option>
+                <option value="45">45 сек.</option>
+                <option value="60">1 мин.</option>
+                <option value="120">2 мин.</option>
+                <option value="180">3 мин.</option>
               </select>
               <span className="text-sm text-slate-500">
                 ({formatTimerDisplay(selectedTimer)})
