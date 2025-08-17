@@ -160,9 +160,9 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
           </header>
           
           {/* Controls */}
-          <div className="test-card__controls flex items-center gap-3 sm:gap-4 flex-wrap">
+          <div className="test-card__controls-row flex flex-nowrap justify-between items-center gap-3">
             {/* Timer Section */}
-            <div className="test-card__timer inline-flex items-center gap-2 min-w-0 flex-shrink-0 order-1">
+            <div className="test-card__timer flex-1 flex items-center gap-2 min-w-0">
               {/* Timer Icon */}
               <svg 
                 className="w-4 h-4 text-slate-500 flex-shrink-0" 
@@ -183,7 +183,7 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
               <select
                 value={currentTimer}
                 onChange={handleTimerChange}
-                className="text-sm border border-slate-300 rounded px-2 py-1 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-0"
+                className="text-sm border border-slate-300 rounded px-2 py-1 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-0 flex-1"
                 aria-label="Таймер"
               >
                 <option value="15">15 сек.</option>
@@ -201,14 +201,14 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
             </div>
             
             {/* Question Count Section */}
-            <div className="test-card__count inline-flex items-center gap-2 min-w-0 flex-shrink-0 order-2">
+            <div className="test-card__count flex-1 flex items-center gap-2 min-w-0">
               <label className="test-card__count-label text-sm text-slate-600 font-medium flex-shrink-0">
                 Брой:
               </label>
               <select
                 value={currentCount}
                 onChange={handleCountChange}
-                className="text-sm border border-slate-300 rounded px-2 py-1 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-0"
+                className="text-sm border border-slate-300 rounded px-2 py-1 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-0 flex-1"
                 aria-label="Брой въпроси"
               >
                 {qs.length <= 5 ? (
