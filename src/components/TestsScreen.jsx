@@ -75,7 +75,7 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
   const handleTimerDurationChange = (lessonId, value) => {
     setTimerDurations(prev => ({
       ...prev,
-      [lessonId]: value === 'no-limit' ? 0 : parseInt(value)
+      [lessonId]: parseInt(value)
     }));
   };
   
@@ -93,7 +93,7 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
     
     // Pass the selected timer duration along with the quiz data
     const quizSettings = {
-      timeLimitMin: selectedTimer === 0 ? null : selectedTimer, // null for unlimited
+      timeLimitMin: selectedTimer,
       showExplanation: true,
       shuffleQuestions: true,
       shuffleOptions: true,
@@ -117,7 +117,6 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
     
     // Helper function to format timer display
     const formatTimerDisplay = (seconds) => {
-      if (!seconds || seconds === 0) return 'Без ограничение';
       if (seconds < 60) return `${seconds} сек`;
       if (seconds === 60) return '1 мин';
       return `${Math.floor(seconds / 60)} мин`;
@@ -178,12 +177,11 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
               
               {/* Timer Dropdown */}
               <select
-                value={currentTimer === 0 ? 'no-limit' : currentTimer}
+                value={currentTimer}
                 onChange={handleTimerChange}
                 className="text-sm border border-slate-300 rounded px-2 py-1 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-0"
                 aria-label="Таймер"
               >
-                <option value="no-limit">Без ограничение</option>
                 <option value="15">15 секунди</option>
                 <option value="30">30 секунди</option>
                 <option value="45">45 секунди</option>
