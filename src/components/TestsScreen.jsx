@@ -26,9 +26,10 @@ function SimpleTabs({ defaultValue, tabs }){
   </div>);
 }
 
-export default function TestsScreen({ profile, lessons, classes, questions, onStartQuiz }){
+export default function TestsScreen({ profile, lessons, classes, questions, onStartQuiz, completedTests }){
   const [questionCounts, setQuestionCounts] = useState({});
   const [timerDurations, setTimerDurations] = useState({});
+  const [showCompletedTests, setShowCompletedTests] = useState(true);
   
   const lessonsByClass = useMemo(() => {
     const grouped = {};
@@ -52,6 +53,12 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
   
   const currentClassId = profile?.classId;
   const currentLessons = lessonsByClass[currentClassId] || [];
+  
+  // Helper function to check if a test is completed
+  const isTestCompleted = (lessonId) => {
+    const normalizedLessonId = normalizeId(lessonId);
+    return completedTests?.some(completedId => normalizeId(completedId) === normalizedLessonId) || false;
+  };
   
   function listQuestionsForLesson(lessonId){ 
     const lid = normalizeId(lessonId); 
@@ -102,6 +109,7 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
     const lessonId = normalizeId(lesson.id);
     const currentCount = questionCounts[lessonId] || qs.length;
     const currentTimer = timerDurations[lessonId] || 60; // Default to 1 minute
+    const isCompleted = isTestCompleted(lesson.id);
     
     const handleStartClick = () => handleStartQuiz(lesson, qs);
     const handleCountChange = (e) => handleQuestionCountChange(lessonId, parseInt(e.target.value));
@@ -130,17 +138,25 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
     }
     
     return (
-      <div key={lessonId} className="card hover:shadow-md transition">
+      <div key={lessonId} className={`card hover:shadow-md transition ${isCompleted ? 'bg-green-50 border-green-200' : ''}`}>
         <div className="card-content">
           <div className="flex items-center justify-between mb-3">
-            <div className="font-medium">{lesson.title || lesson.name}</div>
+            <div className="flex items-center gap-2">
+              <div className="font-medium">{lesson.title || lesson.name}</div>
+              {isCompleted && (
+                <div className="flex items-center gap-1 text-green-600 text-sm">
+                  <span className="text-lg">✓</span>
+                  <span>Решаван</span>
+                </div>
+              )}
+            </div>
             <button 
               type="button" 
-              className="btn btn-primary" 
+              className={`btn ${isCompleted ? 'btn-secondary' : 'btn-primary'}`}
               onClick={handleStartClick}
               disabled={!qs.length}
             >
-              Старт
+              {isCompleted ? 'Повтори' : 'Старт'}
             </button>
           </div>
           
@@ -208,6 +224,83 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
   }
   
   return (<div className="max-w-4xl mx-auto p-4">
+    {/* Completion Summary */}
+    <div className="mb-6 bg-white rounded-lg border p-4 shadow-sm">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-slate-800 mb-1">Прогрес на тестовете</h2>
+          <p className="text-sm text-slate-600">
+            {(() => {
+              const totalTests = currentLessons.length;
+              const completedCount = currentLessons.filter(lesson => isTestCompleted(lesson.id)).length;
+              const percentage = totalTests > 0 ? Math.round((completedCount / totalTests) * 100) : 0;
+              return `${completedCount} от ${totalTests} теста завършени (${percentage}%)`;
+            })()}
+          </p>
+        </div>
+        <div className="text-right">
+          <div className="text-2xl font-bold text-green-600">
+            {currentLessons.filter(lesson => isTestCompleted(lesson.id)).length}
+          </div>
+          <div className="text-sm text-slate-500">Завършени</div>
+        </div>
+      </div>
+      
+      {/* Progress Bar */}
+      <div className="mt-3">
+        <div className="w-full bg-slate-200 rounded-full h-2">
+          <div 
+            className="h-2 bg-green-500 rounded-full transition-all duration-300"
+            style={{ 
+              width: `${(() => {
+                const totalTests = currentLessons.length;
+                const completedCount = currentLessons.filter(lesson => isTestCompleted(lesson.id)).length;
+                return totalTests > 0 ? (completedCount / totalTests) * 100 : 0;
+              })()}%` 
+            }}
+          />
+        </div>
+      </div>
+    </div>
+    
+    {/* Filter Controls */}
+    <div className="mb-4 flex items-center justify-between">
+      <div className="flex items-center gap-4">
+        <label className="flex items-center gap-2 text-sm text-slate-600">
+          <input 
+            type="checkbox" 
+            checked={showCompletedTests}
+            onChange={(e) => setShowCompletedTests(e.target.checked)}
+            className="rounded border-slate-300 text-green-600 focus:ring-green-500"
+          />
+          <span>Покажи завършени тестове</span>
+        </label>
+        
+        {/* Reset completed tests button (for testing) */}
+        <button
+          type="button"
+          onClick={() => {
+            if (window.confirm('Сигурни ли сте, че искате да нулирате всички завършени тестове? Това ще изтрие прогреса.')) {
+              localStorage.removeItem('math-app-completed-tests');
+              window.location.reload();
+            }
+          }}
+          className="text-xs text-red-600 hover:text-red-800 underline"
+          title="Нулирай завършените тестове (за тестване)"
+        >
+          Нулирай прогреса
+        </button>
+      </div>
+      <div className="text-sm text-slate-500">
+        {(() => {
+          const visibleTests = currentLessons.filter(lesson => 
+            showCompletedTests || !isTestCompleted(lesson.id)
+          ).length;
+          return `Показва се: ${visibleTests} теста`;
+        })()}
+      </div>
+    </div>
+    
     <SimpleTabs defaultValue="by-lesson" tabs={[
       {value:'by-lesson', label:'По тема / уроци', content:(
         <div>
@@ -215,9 +308,11 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
             {`Уроци за ${classList.find(c => c.id === currentClassId)?.name || "избрания клас"}`}
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {currentLessons.map(l => {
-              return renderLessonCard(l, true);
-            })}
+            {currentLessons
+              .filter(lesson => showCompletedTests || !isTestCompleted(lesson.id))
+              .map(l => {
+                return renderLessonCard(l, true);
+              })}
           </div>
         </div>
       )},
@@ -227,9 +322,11 @@ export default function TestsScreen({ profile, lessons, classes, questions, onSt
             <div key={cls.id}>
               <div className="text-sm font-semibold mb-2">{cls.name}</div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {(lessonsByClass[cls.id]||[]).map(l => {
-                  return renderLessonCard(l);
-                })}
+                {(lessonsByClass[cls.id]||[])
+                  .filter(lesson => showCompletedTests || !isTestCompleted(lesson.id))
+                  .map(l => {
+                    return renderLessonCard(l);
+                  })}
               </div>
             </div>
           );

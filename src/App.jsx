@@ -27,6 +27,7 @@ export default function MathApp(){
   
   const [profile,setProfile] = useLocalStorage(STORAGE_KEYS.profile, null);
   const [results,setResults] = useLocalStorage(STORAGE_KEYS.results, []);
+  const [completedTests, setCompletedTests] = useLocalStorage(STORAGE_KEYS.completedTests, []);
   const [route,setRoute] = useState("home");
   const [activeQuiz,setActiveQuiz] = useState(null);
   const [settingsOpen,setSettingsOpen] = useState(false);
@@ -43,6 +44,12 @@ export default function MathApp(){
     };
     
     setResults([resultWithQuestions, ...results]); 
+    
+    // Mark this test as completed
+    const lessonId = summary.lesson?.id || summary.lesson?.lesson_id;
+    if (lessonId && !completedTests.includes(lessonId)) {
+      setCompletedTests([...completedTests, lessonId]);
+    }
     
     // Store last quiz with questions for retaking
     setLastQuiz({ 
@@ -73,7 +80,11 @@ export default function MathApp(){
     }
   }
   
-  function resetProfile(){ setProfile(null); setRoute("onboarding"); }
+  function resetProfile(){ 
+    setProfile(null); 
+    setCompletedTests([]);
+    setRoute("onboarding"); 
+  }
 
   const handleTheoryStartQuiz = (lesson, questions, quizSettings) => {
     // Store the quiz with its specific settings
@@ -118,7 +129,14 @@ export default function MathApp(){
     <HeaderBar title={routeTitle(route)} profile={profile} onHome={handleRouteHome} onLogout={resetProfile} onOpenSettings={handleOpenSettings} />
     {route==="home" && <HomeScreen onGo={setRoute} profile={profile} />}
     {route==="theory" && <TheoryScreen profile={profile} theory={theory} classes={classes} lessons={lessons} questions={questions} onStartQuiz={handleTheoryStartQuiz} />}
-    {route==="tests" && (<TestsScreen profile={profile} lessons={lessons} classes={classes} questions={questions} onStartQuiz={handleTestsStartQuiz} />)}
+    {route==="tests" && (<TestsScreen 
+      profile={profile} 
+      lessons={lessons} 
+      classes={classes} 
+      questions={questions} 
+      onStartQuiz={handleTestsStartQuiz}
+      completedTests={completedTests}
+    />)}
     {route==="results" && (<ResultsScreen 
       results={results} 
       classes={classes} 

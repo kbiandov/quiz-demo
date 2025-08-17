@@ -10,5 +10,6 @@ export const STORAGE_KEYS = {
   profile: "math-app-profile",
   results: "math-app-results", 
   settings: "math-app-settings",
-  points: "math-app-points"
+  points: "math-app-points",
+  completedTests: "math-app-completed-tests"
 };
